@@ -1,0 +1,19 @@
+{
+  "name": "Cultlings",
+  "short_name": "Cultlings",
+  "description": "A cute-dark cult camp and action raid prototype.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#100d1f",
+  "theme_color": "#171329",
+  "icons": [
+    {
+      "src": "assets/icons/cultlings-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#171329">
+  <meta name="description" content="Raise a tiny cult, raid cursed clearings, and reclaim your questionable divinity.">
+  <title>Cultlings</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icons/cultlings-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <header id="resource-bar" class="resource-bar is-hidden" aria-label="Cult resources">
+      <div class="resource-pill" title="Devotion">
+        <span class="resource-icon devotion-icon" aria-hidden="true"></span>
+        <span id="resource-devotion">0</span>
+      </div>
+      <div class="resource-pill" title="Food">
+        <span class="resource-icon food-icon" aria-hidden="true"></span>
+        <span id="resource-food">0</span>
+      </div>
+      <div class="resource-pill" title="Cursed Wood">
+        <span class="resource-icon wood-icon" aria-hidden="true"></span>
+        <span id="resource-wood">0</span>
+      </div>
+      <div class="resource-pill" title="Bone Shards">
+        <span class="resource-icon bone-icon" aria-hidden="true"></span>
+        <span id="resource-bones">0</span>
+      </div>
+    </header>
+
+    <main id="screen-root" class="screen-root" aria-live="polite"></main>
+
+    <div id="toast-layer" class="toast-layer" aria-live="polite"></div>
+  </div>
+
+  <script defer src="src/data/gameData.js"></script>
+  <script defer src="src/core/state.js"></script>
+  <script defer src="src/core/ui.js"></script>
+  <script defer src="src/screens/titleScreen.js"></script>
+  <script defer src="src/screens/campScreen.js"></script>
+  <script defer src="src/entities/raidActors.js"></script>
+  <script defer src="src/screens/raidScreen.js"></script>
+  <script defer src="src/screens/resultsScreen.js"></script>
+  <script defer src="src/main.js"></script>
+</body>
+</html>
