@@ -326,6 +326,56 @@
     }
   }
 
+  class DefenderGuard extends BaseEnemy {
+    constructor(x, y, guard, index) {
+      super(x, y, {
+        radius: 18,
+        speed: 50 + ((index || 0) * 2),
+        health: 5,
+        name: guard.name || "Cult Guard"
+      });
+      this.guard = guard;
+      this.color = guard.color || "#bca7ff";
+    }
+
+    update(delta, player) {
+      this.updateTimers(delta);
+      this.chase(delta, player);
+    }
+
+    draw(ctx, time) {
+      const bob = Math.sin((time * 0.006) + this.phase) * 2;
+      ctx.save();
+      ctx.translate(this.x, this.y + bob);
+      ctx.fillStyle = this.hitFlash > 0 ? "#fff4d2" : this.color;
+      ctx.beginPath();
+      ctx.ellipse(0, 4, 18, 20, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#211934";
+      ctx.beginPath();
+      ctx.ellipse(0, 17, 14, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-13, -8);
+      ctx.lineTo(-23, -20);
+      ctx.lineTo(-17, 2);
+      ctx.moveTo(13, -8);
+      ctx.lineTo(23, -20);
+      ctx.lineTo(17, 2);
+      ctx.fill();
+      drawEyes(ctx, 6, -1, "#ffd978");
+
+      ctx.strokeStyle = "#e3d5ef";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(15, 5);
+      ctx.lineTo(27, -12);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   class HexProjectile {
     constructor(x, y, directionX, directionY) {
       this.x = x;
@@ -443,6 +493,7 @@
   C.BoneBeetle = BoneBeetle;
   C.HexWisp = HexWisp;
   C.WaxHeadBrute = WaxHeadBrute;
+  C.DefenderGuard = DefenderGuard;
   C.HexProjectile = HexProjectile;
   C.DangerZone = DangerZone;
   C.RaidPickup = RaidPickup;

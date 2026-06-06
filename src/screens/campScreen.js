@@ -3,6 +3,11 @@
   let rootElement = null;
   let countdownTimer = null;
   let activeTab = "overview";
+  let multiplayerCults = [];
+  let multiplayerInbox = [];
+  let multiplayerLoaded = false;
+  let multiplayerLoading = false;
+  let multiplayerError = "";
 
   function moodClass(follower) {
     return C.store.getMoodLabel(follower).toLowerCase();
@@ -234,13 +239,144 @@
     `;
   }
 
+  function relativeTime(timestamp) {
+    if (!timestamp) return "Unknown";
+    const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+    if (seconds < 60) return "Just now";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+  }
+
+  function multiplayerCultMarkup(cult) {
+    const ownId = C.MultiplayerService.mode === "firebase"
+      ? C.FirebaseService.getStatus().uid
+      : "local-player";
+    const isOwn = cult.ownerId === ownId;
+    return `
+      <article class="public-cult-card">
+        <div class="cult-power"><strong>${cult.basePower || 0}</strong><span>Power</span></div>
+        <div class="public-cult-copy">
+          <strong>${C.UI.escapeHtml(cult.displayName || "Unnamed Cult")}</strong>
+          <span>Shrine ${cult.shrineLevel || 1} - ${cult.guards ? cult.guards.length : 0} guards</span>
+          <small>Updated ${relativeTime(cult.publishedAtMs)}</small>
+        </div>
+        <button class="button button-small ${isOwn ? "button-muted" : ""}"
+          data-raid-cult="${C.UI.escapeHtml(cult.id || cult.ownerId)}" ${isOwn ? "disabled" : ""}>
+          ${isOwn ? "Your Cult" : "Raid"}
+        </button>
+      </article>
+    `;
+  }
+
+  function inboxMarkup(result) {
+    const won = result.outcome === "defenseWin";
+    const reward = result.defenderReward || { devotion: 3, bones: 1 };
+    return `
+      <article class="inbox-card ${won ? "defense-won" : "defense-lost"}">
+        <div class="inbox-mark">${won ? "W" : "R"}</div>
+        <div>
+          <strong>Your cult was raided!</strong>
+          <span>${C.UI.escapeHtml(result.attackerName || "A mysterious cult")} - ${won ? "defense held" : "shrine breached"}</span>
+          <p>${C.UI.escapeHtml(result.summary || "The details are sticky and unclear.")}</p>
+          <small>${relativeTime(result.createdAtMs)}</small>
+        </div>
+        <button class="button button-small ${result.collected ? "button-muted" : ""}"
+          data-collect-result="${C.UI.escapeHtml(result.id)}" ${result.collected ? "disabled" : ""}>
+          ${result.collected ? "Collected" : `Collect D${reward.devotion || 0} B${reward.bones || 0}`}
+        </button>
+      </article>
+    `;
+  }
+
+  function multiplayerMarkup() {
+    const status = C.MultiplayerService.getStatus();
+    const state = C.store.state;
+    const online = status.online;
+    const statusLabel = !status.ready && status.configured
+      ? "Connecting"
+      : online
+        ? "Firebase Online"
+        : "Offline Mode";
+    const statusCopy = online
+      ? "Anonymous auth connected. Publishing, cloud saves, and raid results use Firestore."
+      : "Single-player remains fully available. Multiplayer uses local mock cults and inbox data.";
+    const modifiers = state.multiplayer.defenseModifiers || [];
+
+    return `
+      <section class="camp-tab-panel" data-panel="multiplayer">
+        <div class="tab-intro">
+          <div><p class="eyebrow">Asynchronous trouble</p><h2>Multiplayer</h2></div>
+          <span class="network-status ${online ? "is-online" : "is-offline"}">${statusLabel}</span>
+        </div>
+        <p class="tab-help">${statusCopy}</p>
+
+        <article class="multiplayer-panel profile-panel">
+          <div class="multiplayer-heading">
+            <div><strong>Player Profile</strong><span>${online ? `Anonymous ID ${C.UI.escapeHtml((status.uid || "").slice(0, 8))}` : "Stored on this device"}</span></div>
+          </div>
+          <label class="profile-name-field">
+            <span>Display name</span>
+            <input id="multiplayer-name" maxlength="24" value="${C.UI.escapeHtml(state.multiplayer.displayName)}">
+          </label>
+          <div class="multiplayer-action-row">
+            <button class="button button-secondary" id="save-display-name">Save Name</button>
+            <button class="button button-secondary" id="sync-cloud-save">Sync Save</button>
+          </div>
+          <small class="sync-note">${state.multiplayer.lastCloudSyncAt ? `Last sync ${relativeTime(state.multiplayer.lastCloudSyncAt)}` : "Cloud sync is manual and never silently replaces a newer local save."}</small>
+        </article>
+
+        <article class="multiplayer-panel">
+          <div class="multiplayer-heading">
+            <div><strong>Publish Cult</strong><span>Only a small raidable snapshot is shared</span></div>
+            <span class="power-preview">${C.MultiplayerService.createCultSnapshot().basePower} power</span>
+          </div>
+          <div class="defense-options">
+            <label><input type="checkbox" data-defense-modifier="sturdyWalls" ${modifiers.includes("sturdyWalls") ? "checked" : ""}> Reinforced Shrine</label>
+            <label><input type="checkbox" data-defense-modifier="hexWards" ${modifiers.includes("hexWards") ? "checked" : ""}> Hex Wards</label>
+            <label><input type="checkbox" data-defense-modifier="guardFervor" ${modifiers.includes("guardFervor") ? "checked" : ""}> Guard Fervor</label>
+          </div>
+          <p class="privacy-note">Publishes your name, building levels, guard followers, selected modifiers, active relic IDs, power, and timestamp. Resources and full follower data stay private.</p>
+          <button class="button button-primary multiplayer-wide-button" id="publish-cult">Publish Cult</button>
+        </article>
+
+        <article class="multiplayer-panel">
+          <div class="multiplayer-heading">
+            <div><strong>Find Cults</strong><span>20 most recent public bases</span></div>
+            <button class="text-button" id="refresh-multiplayer">Refresh</button>
+          </div>
+          ${multiplayerLoading
+            ? `<div class="multiplayer-empty">Listening for distant chanting...</div>`
+            : multiplayerError
+              ? `<div class="camp-warning">${C.UI.escapeHtml(multiplayerError)}</div>`
+              : `<div class="public-cult-list">${multiplayerCults.length
+                  ? multiplayerCults.map(multiplayerCultMarkup).join("")
+                  : `<div class="multiplayer-empty">No published cults found yet.</div>`}</div>`}
+        </article>
+
+        <article class="multiplayer-panel">
+          <div class="multiplayer-heading">
+            <div><strong>Raid Inbox</strong><span>Defender reports and rewards</span></div>
+            <span class="inbox-count">${multiplayerInbox.filter((result) => !result.collected).length} new</span>
+          </div>
+          <div class="inbox-list">${multiplayerInbox.length
+            ? multiplayerInbox.map(inboxMarkup).join("")
+            : `<div class="multiplayer-empty">No one has raided your cult. Yet.</div>`}</div>
+        </article>
+      </section>
+    `;
+  }
+
   function tabMarkup() {
     const markup = {
       overview: overviewMarkup,
       followers: followersMarkup,
       buildings: buildingsMarkup,
       rituals: ritualsMarkup,
-      relics: relicsMarkup
+      relics: relicsMarkup,
+      multiplayer: multiplayerMarkup
     };
     return markup[activeTab]();
   }
@@ -255,6 +391,36 @@
       button.setAttribute("aria-selected", selected ? "true" : "false");
     });
     renderEventModal();
+    if (activeTab === "multiplayer" && !multiplayerLoaded && !multiplayerLoading) {
+      loadMultiplayerData();
+    }
+  }
+
+  async function loadMultiplayerData(force) {
+    if (multiplayerLoading) return;
+    if (multiplayerLoaded && !force) return;
+    multiplayerLoading = true;
+    multiplayerError = "";
+    if (activeTab === "multiplayer" && rootElement) {
+      const content = rootElement.querySelector("#camp-tab-content");
+      if (content) content.innerHTML = multiplayerMarkup();
+    }
+    try {
+      await C.MultiplayerService.init();
+      [multiplayerCults, multiplayerInbox] = await Promise.all([
+        C.MultiplayerService.listCults(),
+        C.MultiplayerService.getInbox()
+      ]);
+      multiplayerLoaded = true;
+    } catch (error) {
+      multiplayerError = error && error.message ? error.message : "Multiplayer data could not be loaded.";
+    } finally {
+      multiplayerLoading = false;
+      if (activeTab === "multiplayer" && rootElement && rootElement.isConnected) {
+        const content = rootElement.querySelector("#camp-tab-content");
+        if (content) content.innerHTML = multiplayerMarkup();
+      }
+    }
   }
 
   function updateRitualCountdown() {
@@ -301,7 +467,7 @@
     rootElement.appendChild(modal);
   }
 
-  function handleCampClick(event) {
+  async function handleCampClick(event) {
     const tabButton = event.target.closest("[data-tab]");
     if (tabButton) {
       activeTab = tabButton.dataset.tab;
@@ -355,6 +521,83 @@
       return;
     }
 
+    if (event.target.closest("#save-display-name")) {
+      const input = rootElement.querySelector("#multiplayer-name");
+      try {
+        const name = await C.MultiplayerService.setDisplayName(input.value);
+        C.UI.toast(`Known henceforth as ${name}.`, "success");
+      } catch (error) {
+        C.UI.toast(error.message || "That name displeases the moon.", "warning");
+      }
+      return;
+    }
+
+    if (event.target.closest("#sync-cloud-save")) {
+      try {
+        const result = await C.MultiplayerService.syncSave();
+        if (result.status === "conflict") {
+          const cloudDate = new Date(result.cloudUpdatedAt).toLocaleString();
+          const loadCloud = window.confirm(
+            `The cloud save is newer (${cloudDate}). Load it and replace local progression? Cancel keeps local progress unchanged.`
+          );
+          if (loadCloud) {
+            C.MultiplayerService.applyCloudSave(result);
+            C.UI.toast("Newer cloud save loaded.", "success");
+          } else {
+            C.UI.toast("Local save kept. Nothing was overwritten.", "warning");
+          }
+        } else {
+          C.UI.toast(result.status === "mock" ? "Offline save is healthy." : "Save synced to Firebase.", "success");
+        }
+      } catch (error) {
+        C.UI.toast("Sync failed. Local save is still safe.", "warning");
+      }
+      renderActiveTab();
+      return;
+    }
+
+    if (event.target.closest("#publish-cult")) {
+      try {
+        const snapshot = await C.MultiplayerService.publishCult();
+        C.UI.toast(`Cult published at power ${snapshot.basePower}.`, "success");
+        multiplayerLoaded = false;
+        await loadMultiplayerData(true);
+      } catch (error) {
+        C.UI.toast("Publish failed. Local play is unaffected.", "warning");
+      }
+      return;
+    }
+
+    if (event.target.closest("#refresh-multiplayer")) {
+      multiplayerLoaded = false;
+      await loadMultiplayerData(true);
+      return;
+    }
+
+    const raidCultButton = event.target.closest("[data-raid-cult]");
+    if (raidCultButton) {
+      const cult = multiplayerCults.find((item) => (item.id || item.ownerId) === raidCultButton.dataset.raidCult);
+      if (cult) C.App.show("raid", { mode: "async", defender: cult });
+      return;
+    }
+
+    const collectButton = event.target.closest("[data-collect-result]");
+    if (collectButton) {
+      const result = multiplayerInbox.find((item) => item.id === collectButton.dataset.collectResult);
+      collectButton.disabled = true;
+      try {
+        if (await C.MultiplayerService.collectInboxReward(result)) {
+          result.collected = true;
+          C.UI.toast("Defender reward collected.", "success");
+          renderActiveTab();
+        }
+      } catch (error) {
+        collectButton.disabled = false;
+        C.UI.toast("Reward collection failed. Try again later.", "warning");
+      }
+      return;
+    }
+
     if (event.target.closest("#start-raid")) {
       C.App.show("raid");
       return;
@@ -371,6 +614,12 @@
   }
 
   function handleCampChange(event) {
+    const modifier = event.target.closest("[data-defense-modifier]");
+    if (modifier) {
+      C.MultiplayerService.setDefenseModifier(modifier.dataset.defenseModifier, modifier.checked);
+      renderActiveTab();
+      return;
+    }
     const select = event.target.closest("[data-follower-job]");
     if (!select) return;
     if (C.store.assignJob(select.dataset.followerJob, select.value)) {
@@ -401,6 +650,7 @@
             <button data-tab="buildings" role="tab">Buildings</button>
             <button data-tab="rituals" role="tab">Rituals</button>
             <button data-tab="relics" role="tab">Relics</button>
+            <button data-tab="multiplayer" role="tab">Multiplayer</button>
           </nav>
 
           <div id="camp-tab-content"></div>

@@ -2,7 +2,7 @@
   const C = window.Cultlings = window.Cultlings || {};
 
   C.DATA = {
-    version: 2,
+    version: 3,
     resources: {
       devotion: { label: "Devotion", short: "Devotion" },
       food: { label: "Food", short: "Food" },

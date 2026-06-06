@@ -25,25 +25,33 @@
       window.scrollTo(0, 0);
     },
 
-    finishRaid(result) {
+    async finishRaid(result) {
       result.rewards = C.store.applyRaidRewardBonuses(result.rewards);
       C.store.addResources(result.rewards, "raidRewards");
       if (result.outcome === "victory") {
-        result.xp = C.store.getRaidXP();
+        result.xp = result.asyncRaid ? Math.ceil(C.store.getRaidXP() * 0.65) : C.store.getRaidXP();
         result.ranksGained = C.store.addXP(result.xp, "Raid cleared");
       } else {
         result.xp = 0;
         result.ranksGained = 0;
       }
-      if (result.recruitedFollower) {
+      if (!result.asyncRaid && result.recruitedFollower) {
         const follower = C.store.recruitFollower();
         result.follower = follower;
       }
-      if (result.outcome === "victory" && C.store.isUnlocked(3) && Math.random() < C.DATA.raid.relicChance) {
+      if (!result.asyncRaid && result.outcome === "victory" && C.store.isUnlocked(3) && Math.random() < C.DATA.raid.relicChance) {
         result.relicId = C.store.getRandomRelicId();
         result.relicResult = C.store.addRelic(result.relicId);
       }
       C.store.recordRaid(result.outcome);
+      if (result.asyncRaid) {
+        try {
+          result.asyncRecord = await C.MultiplayerService.recordRaidResult(result);
+        } catch (error) {
+          console.warn("Async raid result could not be uploaded.", error);
+          result.asyncRecordError = true;
+        }
+      }
       this.lastRaidResult = result;
       this.show("results", result);
     }
@@ -64,6 +72,13 @@
 
   window.setInterval(() => C.store.tick(Date.now()), 250);
   window.addEventListener("beforeunload", () => C.store.save());
+
+  C.MultiplayerService.subscribe(() => {
+    if (C.App.currentScreen === "camp") C.CampScreen.refresh("multiplayer");
+  });
+  C.MultiplayerService.init().catch((error) => {
+    console.warn("Multiplayer initialization failed; using Offline Mode.", error);
+  });
 
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     window.addEventListener("load", () => {

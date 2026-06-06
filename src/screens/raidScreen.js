@@ -99,7 +99,55 @@
     ctx.stroke();
   }
 
-  function roomDefinition(roomNumber) {
+  function multiplayerRoom(defender) {
+    const buildings = defender.buildings || {};
+    const modifiers = defender.defenseModifiers || [];
+    const guards = (defender.guards || []).slice(0, 6);
+    const positions = [
+      [70, 115], [180, 105], [290, 115], [105, 250], [255, 250], [180, 345]
+    ];
+    const enemies = guards.map((guard, index) => (
+      new C.DefenderGuard(positions[index][0], positions[index][1], guard, index)
+    ));
+    const shrineLevel = Math.max(1, defender.shrineLevel || buildings.shrine || 1);
+    const beetleCount = Math.min(3, Math.floor(shrineLevel / 2));
+    const wispCount = Math.min(3, Math.floor((buildings.ritual || 0) / 2) + (modifiers.includes("hexWards") ? 1 : 0));
+
+    if (!enemies.length) {
+      enemies.push(new C.CandleGoblin(90, 120, 0), new C.CandleGoblin(270, 120, 1));
+    }
+    for (let index = 0; index < beetleCount; index += 1) {
+      enemies.push(new C.BoneBeetle(90 + (index * 90), 205 + ((index % 2) * 65)));
+    }
+    for (let index = 0; index < wispCount; index += 1) {
+      enemies.push(new C.HexWisp(70 + (index * 110), 90));
+    }
+    if ((defender.basePower || 0) >= 75) {
+      const brute = new C.WaxHeadBrute(180, 150);
+      brute.health = 16;
+      brute.maxHealth = 16;
+      enemies.push(brute);
+    }
+
+    const healthMultiplier = 1 + Math.min(0.6, (defender.basePower || 0) / 180) +
+      (modifiers.includes("sturdyWalls") ? 0.2 : 0);
+    enemies.forEach((enemy) => {
+      enemy.health = Math.ceil(enemy.health * healthMultiplier);
+      enemy.maxHealth = enemy.health;
+      if (modifiers.includes("guardFervor")) enemy.speed *= 1.12;
+    });
+
+    return {
+      name: `${defender.displayName || "Unknown Cult"} Defense`,
+      layout: modifiers.includes("hexWards") ? "ruins" : "altar",
+      enemies
+    };
+  }
+
+  function roomDefinition(roomNumber, raidPayload) {
+    if (raidPayload && raidPayload.mode === "async") {
+      return multiplayerRoom(raidPayload.defender || {});
+    }
     if (roomNumber === 1) {
       return {
         name: "Candlewood Clearing",
@@ -138,14 +186,19 @@
   }
 
   C.RaidScreen = {
-    render(root) {
+    render(root, raidPayload) {
       const raidStats = C.store.getRaidStats();
+      const isAsyncRaid = raidPayload && raidPayload.mode === "async";
+      const totalRooms = isAsyncRaid ? 1 : 3;
+      const initialRoomName = isAsyncRaid
+        ? `${raidPayload.defender.displayName || "Unknown Cult"} Defense`
+        : "Candlewood Clearing";
       root.innerHTML = `
         <section class="raid-screen screen">
           <div class="raid-header raid-header-expanded">
             <div>
-              <p class="eyebrow" id="room-name">Candlewood Clearing</p>
-              <strong id="raid-status">Room 1 of 3</strong>
+              <p class="eyebrow" id="room-name">${C.UI.escapeHtml(initialRoomName)}</p>
+              <strong id="raid-status">Room 1 of ${totalRooms}</strong>
             </div>
             <div class="raid-health-wrap">
               <span id="health-label">${raidStats.maxHealth}/${raidStats.maxHealth}</span>
@@ -238,13 +291,13 @@
         roomName.textContent = currentRoom.name;
         status.textContent = roomCleared
           ? `Room ${roomNumber} cleared`
-          : `Room ${roomNumber} of 3 - ${enemies.length} foe${enemies.length === 1 ? "" : "s"}`;
+          : `Room ${roomNumber} of ${totalRooms} - ${enemies.length} foe${enemies.length === 1 ? "" : "s"}`;
         updateBossHealth();
       }
 
       function setupRoom(number) {
         roomNumber = number;
-        currentRoom = roomDefinition(roomNumber);
+        currentRoom = roomDefinition(roomNumber, raidPayload);
         obstacles = layouts[currentRoom.layout];
         enemies = currentRoom.enemies;
         projectiles = [];
@@ -329,10 +382,17 @@
         pickups.forEach(collectPickup);
         pickups = [];
         const recruitedFollower =
+          !isAsyncRaid &&
           outcome === "victory" &&
           C.store.state.followers.length < C.store.getFollowerCapacity() &&
           Math.random() < C.store.getRecruitChance();
-        C.App.finishRaid({ outcome, rewards, recruitedFollower, roomsCleared: roomNumber - (roomCleared ? 0 : 1) });
+        C.App.finishRaid({
+          outcome,
+          rewards,
+          recruitedFollower,
+          roomsCleared: roomNumber - (roomCleared ? 0 : 1),
+          asyncRaid: isAsyncRaid ? { defender: raidPayload.defender } : null
+        });
       }
 
       function hurtPlayer(amount, x, y) {
@@ -352,12 +412,16 @@
         dangerZones = [];
         callout.classList.remove("is-hidden");
         actionButton.classList.remove("is-hidden");
-        if (roomNumber < 3) {
+        if (roomNumber < totalRooms) {
           calloutTitle.textContent = `Room ${roomNumber} Cleared`;
           calloutCopy.textContent = roomNumber === 1
             ? "Something heavier is moving deeper in the wood."
             : "The Melted Altar waits ahead.";
           actionButton.textContent = "Enter Next Room";
+        } else if (isAsyncRaid) {
+          calloutTitle.textContent = "Cult Defense Broken";
+          calloutCopy.textContent = `${raidPayload.defender.displayName || "The defender"} will receive this report later.`;
+          actionButton.textContent = "Claim Async Raid Rewards";
         } else {
           calloutTitle.textContent = "Brute Defeated";
           calloutCopy.textContent = "The great candle goes out with a tiny, offended hiss.";
@@ -505,7 +569,7 @@
       }
 
       function onRoomAction() {
-        if (roomNumber < 3) setupRoom(roomNumber + 1);
+        if (roomNumber < totalRooms) setupRoom(roomNumber + 1);
         else finishRaid("victory");
       }
 

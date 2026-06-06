@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    match /players/{userId} {
+      allow create, read, update: if owns(userId);
+      allow delete: if false;
+    }
+
+    match /publicCults/{userId} {
+      allow read: if signedIn();
+
+      allow create, update: if owns(userId)
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 24
+        && request.resource.data.basePower is int
+        && request.resource.data.basePower >= 0
+        && request.resource.data.guards.size() <= 6;
+
+      allow delete: if owns(userId);
+    }
+
+    match /raidResults/{resultId} {
+      allow create: if signedIn()
+        && request.resource.data.attackerId == request.auth.uid
+        && request.resource.data.defenderId is string
+        && request.resource.data.defenderId != request.auth.uid
+        && request.resource.data.attackerName is string
+        && request.resource.data.attackerName.size() <= 24
+        && request.resource.data.collected == false;
+
+      allow read: if signedIn()
+        && (
+          resource.data.attackerId == request.auth.uid
+          || resource.data.defenderId == request.auth.uid
+        );
+
+      allow update: if signedIn()
+        && resource.data.defenderId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['collected', 'collectedAtMs'])
+        && request.resource.data.collected == true;
+
+      allow delete: if false;
+    }
+  }
+}

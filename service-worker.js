@@ -1,4 +1,4 @@
-const CACHE_NAME = "cultlings-v2";
+const CACHE_NAME = "cultlings-v3";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -9,6 +9,10 @@ const APP_FILES = [
   "./src/data/gameData.js",
   "./src/core/state.js",
   "./src/core/ui.js",
+  "./src/data/firebaseConfig.js",
+  "./src/data/firebaseConfig.example.js",
+  "./src/services/firebaseService.js",
+  "./src/services/multiplayerService.js",
   "./src/screens/titleScreen.js",
   "./src/screens/campScreen.js",
   "./src/entities/raidActors.js",
@@ -32,6 +36,19 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (url.pathname.endsWith("/src/data/firebaseConfig.js")) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
@@ -40,7 +57,10 @@ self.addEventListener("fetch", (event) => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return response;
-      }).catch(() => caches.match("./index.html"));
+      }).catch(() => {
+        if (event.request.mode === "navigate") return caches.match("./index.html");
+        return Promise.reject(new Error("Offline asset unavailable"));
+      });
     })
   );
 });

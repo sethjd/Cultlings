@@ -2,11 +2,11 @@
 
 Cultlings is a mobile-first cute-dark browser game prototype. You play a tiny failed god rebuilding a questionable cult, assigning followers around camp and fighting through short cursed raids.
 
-Everything in the prototype is original and drawn with CSS, SVG, or the HTML canvas. There are no runtime dependencies, external assets, or build tools.
+Everything is original and drawn with CSS, SVG, or the HTML canvas. The base game has no build step and remains fully playable offline.
 
 ## Run Locally
 
-`index.html` can be opened directly for a quick look. PWA and offline features require a local web server:
+`index.html` can be opened directly for basic offline play. PWA caching and Firebase require a local web server:
 
 ```powershell
 python -m http.server 8000
@@ -17,102 +17,170 @@ Then open `http://localhost:8000`.
 ## Publish on GitHub Pages
 
 1. Add the project files to a GitHub repository.
-2. Open **Settings > Pages** in that repository.
-3. Under **Build and deployment**, choose **Deploy from a branch**.
+2. Open **Settings > Pages**.
+3. Choose **Deploy from a branch**.
 4. Select the main branch and root folder.
 5. Open the generated Pages URL after deployment finishes.
 
-All file paths are relative, so the game works under a repository path such as `username.github.io/cultlings/`.
+All paths are relative, so repository subpaths such as `username.github.io/cultlings/` work.
 
-To install it on a phone, open the deployed HTTPS page and use the browser's **Add to Home Screen** action.
+## Offline and Mock Mode
 
-## Current Progression Loop
+Firebase is optional. With the default `firebaseConfig.js`, Cultlings shows **Offline Mode** and continues to use localStorage.
 
-- Gain Godling XP from raids, followers, rituals, and building upgrades
-- Unlock the Training Pit at Rank 2
-- Unlock the Relic Vault and raid relics at Rank 3
-- Unlock the Cursed Ruins room layout at Rank 4
-- Unlock follower job assignment at Rank 5
-- Return to camp to balance production, food, housing, mood, upgrades, and raid fatigue
-- Encounter short choice events after raids or during camp play
+The multiplayer tab remains testable using three local mock cults:
 
-Numbers are intentionally compact. One or two raids should provide a meaningful upgrade or unlock.
+- Moon-Mold Family
+- Candle Teeth Circle
+- The Soft Skull Choir
 
-## Camp Features
+Mock publishing, raid history, defender inbox rewards, display names, and save checks are stored only on the current device.
 
-- Five mobile tabs: Overview, Followers, Buildings, Rituals, and Relics
-- Generated followers with traits, jobs, and Happy/Okay/Unhappy moods
-- Worshipper, Forager, Woodcutter, Bone Picker, and Guard jobs
-- Trait and mood modifiers for production and food use
-- Moon Shrine, Follower Huts, Ritual Circle, Crooked Kitchen, Training Pit, and Relic Vault
-- Moon Chant production boost and Hearth Feast recovery ritual
-- Passive camp production with floating resource summaries
-- Food, housing, rituals, and repeated raids affect follower mood
-- Local autosave and reset-save control
+## Enable Firebase
 
-## Raid Features
+Cultlings uses the modular Firebase Web SDK, Anonymous Authentication, and Cloud Firestore.
 
-- Three-room action raids with persistent health between rooms
-- Candle Goblin chasers
-- Tough, slower Bone Beetles
-- Ranged Hex Wisps with slow magic projectiles
-- The Wax-Head Brute mini boss with marked danger zones
-- Candlewood, Cursed Ruins, and Melted Altar presentation
-- Mobile virtual joystick and attack button
-- WASD or arrow keys to move; Space or mouse/touch on the canvas to attack
-- Player and boss health bars
-- Resource pickups, follower recruitment, XP, relic finds, and results summary
+1. Create a Firebase project.
+2. Add a Web App in **Project settings**.
+3. Enable **Authentication > Sign-in method > Anonymous**.
+4. Create a Cloud Firestore database.
+5. Open [src/data/firebaseConfig.example.js](src/data/firebaseConfig.example.js).
+6. Copy its object into [src/data/firebaseConfig.js](src/data/firebaseConfig.js).
+7. Replace every placeholder with the Web App configuration from Firebase Console.
+8. Deploy the rules in [firebase.rules.example](firebase.rules.example), reviewing them for your production needs.
+9. Serve or deploy the app over HTTP/HTTPS.
 
-## Relics
+No private service-account credential belongs in this browser project. The Firebase Web configuration identifies the project but does not replace Security Rules.
 
-The prototype includes eight relics:
+The Firebase SDK is downloaded from Google's official `gstatic.com/firebasejs` CDN only when a valid config is detected. If loading or authentication fails, the game falls back to Offline Mode.
 
-- Cracked Moon Bell
-- Hungry Little Idol
-- Bone Crown
-- Ember Candle
-- Soft Skull Charm
-- Mushroom Halo
-- Whispering Twig
-- Tiny Doom Mask
+## Authentication and Profiles
 
-The first Relic Vault level provides three active slots. Vault upgrades add more. Duplicate relics convert into bone shards.
+When Firebase is configured:
 
-## Project Layout
+- The app signs in anonymously.
+- `players/{uid}` is created or loaded.
+- New players receive a local name such as `Cultling_0427`.
+- Display names can be edited in the Multiplayer tab and synchronized to the profile.
 
-```text
-assets/
-  icons/
-  svg/
-src/
-  core/       save state and shared UI helpers
-  data/       progression, buildings, jobs, relics, events, and tuning
-  entities/   player, enemies, hazards, projectiles, and pickups
-  screens/    title, camp, raid, and results screens
-index.html
-styles.css
-manifest.json
-service-worker.js
-```
+Anonymous accounts are device/browser-profile specific unless later linked to another sign-in provider.
+
+## Cloud Saves
+
+localStorage remains the normal save and offline fallback.
+
+The **Sync Save** button uploads:
+
+- resources
+- followers and jobs
+- building levels
+- relic ownership and active relics
+- XP and derived Godling Rank
+- raid progression fields
+- save timestamp
+
+Before loading cloud progress, the app compares timestamps. A newer cloud save produces a warning and requires confirmation; it is never silently written over the local save.
+
+## Asynchronous Multiplayer
+
+The Multiplayer camp tab provides:
+
+- connection status
+- display-name editing
+- manual cloud sync
+- defense modifier selection
+- Publish Cult
+- recent published cult browser
+- asynchronous raid launch
+- defender raid inbox and collectible rewards
+
+Publishing uploads only a small raidable snapshot:
+
+- owner ID and display name
+- abstract camp layout labels
+- building and shrine levels
+- guard followers' name, trait, and placeholder color
+- selected defense modifiers
+- up to three active relic IDs
+- base power and timestamp
+
+It does not publish resources, full follower rosters, local settings, or cloud-save contents.
+
+Async raids generate one room from the defender snapshot. Guard followers become combat units, shrine levels add tougher enemies, ritual levels and Hex Wards add ranged wisps, and defensive modifiers alter health or speed. Strong bases can summon a smaller Wax-Head Brute.
+
+Afterward, a compact battle result is written for the defender to collect later. This is not real-time multiplayer.
+
+## Firestore Data Design
+
+### `players/{uid}`
+
+Private to the authenticated owner:
+
+- `displayName`
+- `createdAtMs`
+- `updatedAtMs`
+- `cloudSave.data`
+- `cloudSave.updatedAtMs`
+
+### `publicCults/{uid}`
+
+Readable by signed-in players:
+
+- public display name
+- raidable layout and building snapshot
+- guard summaries
+- defense modifiers
+- base power
+- publish timestamp
+
+The document ID matches the owner's Firebase UID.
+
+### `raidResults/{resultId}`
+
+Readable only by the attacker or defender:
+
+- attacker and defender IDs
+- attacker display name
+- win/loss result
+- earned resources
+- defender reward
+- short battle summary
+- timestamp
+- collection state
+
+Only the defender may update `collected` and `collectedAtMs`.
+
+## Security Notes
+
+[firebase.rules.example](firebase.rules.example) is safer than open public writes:
+
+- player documents are owner-only
+- public cults can only be written by their owner
+- raid results must identify the signed-in user as attacker
+- raid results are readable only by their attacker or defender
+- defenders may only update reward collection fields
+
+Client-generated multiplayer is still not cheat-proof. A production economy should validate rewards and raid outcomes with trusted server code, such as Cloud Functions.
+
+## Current Game Features
+
+- Godling Rank and progression unlocks
+- follower jobs, traits, mood, housing, and food pressure
+- six buildings and two rituals
+- eight collectible relics
+- random camp choice events
+- three-room single-player raids
+- Candle Goblins, Bone Beetles, Hex Wisps, and the Wax-Head Brute
+- mobile joystick, keyboard controls, player health, and boss health
+- PWA caching and offline loading
+- optional asynchronous multiplayer foundation
 
 ## Known Next Steps
 
-- Add weapons and attack choices
-- Add more rituals, traits, events, relics, and bosses
-- Add follower job animations and a detailed happiness screen
-- Add building placement and visible Training Pit, Kitchen, and Vault art to the camp map
-- Add sound, music, tutorial prompts, and accessibility settings
-- Add proper PNG install icons and platform splash assets
-- Tune enemy waves and progression with broader device play-testing
-
-## Future Firebase Integration
-
-Firebase configuration can live in:
-
-```text
-src/config/firebase.js
-```
-
-The `GameStore` in `src/core/state.js` remains the data boundary. Local storage can become an offline cache while cloud saves, shared raid seeds, and asynchronous challenge data are added behind the same store methods.
-
-Do not commit private service-account credentials. Browser Firebase configuration is public by design; database and storage access must be protected with Firebase Security Rules.
+- Link anonymous accounts to durable sign-in providers
+- Validate raid results with Cloud Functions
+- Add replay seeds or deterministic combat summaries
+- Add inbox pagination and result expiry
+- Add App Check and rate limiting
+- Add weapons, more defenses, rituals, traits, events, and bosses
+- Add sound, tutorial prompts, and accessibility settings

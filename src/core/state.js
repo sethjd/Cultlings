@@ -11,6 +11,7 @@
   }
 
   function defaultState() {
+    const suffix = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
     return {
       version: C.DATA.version,
       resources: { ...C.DATA.starterResources },
@@ -32,6 +33,12 @@
       raidsCompleted: 0,
       pendingEventId: null,
       lastEventAt: Date.now(),
+      multiplayer: {
+        displayName: `Cultling_${suffix}`,
+        defenseModifiers: ["sturdyWalls"],
+        lastCloudSyncAt: 0,
+        lastPublishedAt: 0
+      },
       tutorialCompleted: false,
       settings: { sound: true, reducedMotion: false },
       lastSavedAt: Date.now(),
@@ -56,6 +63,7 @@
       resources: { ...defaults.resources, ...(saved.resources || {}) },
       buildings: { ...defaults.buildings, ...(saved.buildings || {}) },
       settings: { ...defaults.settings, ...(saved.settings || {}) },
+      multiplayer: { ...defaults.multiplayer, ...(saved.multiplayer || {}) },
       followers,
       relics: Array.isArray(saved.relics) ? saved.relics : [],
       activeRelics: Array.isArray(saved.activeRelics) ? saved.activeRelics : [],
@@ -101,6 +109,54 @@
       this.state = defaultState();
       this.save();
       this.notify("reset");
+    }
+
+    setDisplayName(displayName) {
+      this.state.multiplayer.displayName = displayName;
+      this.save();
+      this.notify("displayName", { displayName });
+    }
+
+    exportCloudSave() {
+      return {
+        version: this.state.version,
+        resources: { ...this.state.resources },
+        followers: this.state.followers.map((follower) => ({ ...follower })),
+        buildings: { ...this.state.buildings },
+        relics: [...this.state.relics],
+        activeRelics: [...this.state.activeRelics],
+        xp: this.state.xp,
+        godlingRank: this.getRank(),
+        ritualBoostUntil: this.state.ritualBoostUntil,
+        ritualMoodUntil: this.state.ritualMoodUntil,
+        raidFatigue: this.state.raidFatigue,
+        raidsCompleted: this.state.raidsCompleted
+      };
+    }
+
+    importCloudSave(cloudSave, cloudUpdatedAt) {
+      if (!cloudSave) return false;
+      const defaults = defaultState();
+      this.state.resources = { ...defaults.resources, ...(cloudSave.resources || {}) };
+      this.state.followers = Array.isArray(cloudSave.followers)
+        ? cloudSave.followers.map((follower) => ({
+            ...follower,
+            job: follower.job || "worshipper",
+            moodValue: Number.isFinite(follower.moodValue) ? follower.moodValue : 70
+          }))
+        : this.state.followers;
+      this.state.buildings = { ...defaults.buildings, ...(cloudSave.buildings || {}) };
+      this.state.relics = Array.isArray(cloudSave.relics) ? [...cloudSave.relics] : [];
+      this.state.activeRelics = Array.isArray(cloudSave.activeRelics) ? [...cloudSave.activeRelics] : [];
+      this.state.xp = Number.isFinite(cloudSave.xp) ? cloudSave.xp : this.state.xp;
+      this.state.ritualBoostUntil = cloudSave.ritualBoostUntil || 0;
+      this.state.ritualMoodUntil = cloudSave.ritualMoodUntil || 0;
+      this.state.raidFatigue = cloudSave.raidFatigue || 0;
+      this.state.raidsCompleted = cloudSave.raidsCompleted || 0;
+      this.state.multiplayer.lastCloudSyncAt = cloudUpdatedAt || Date.now();
+      this.save();
+      this.notify("cloudLoaded", { cloudUpdatedAt });
+      return true;
     }
 
     getRank() {

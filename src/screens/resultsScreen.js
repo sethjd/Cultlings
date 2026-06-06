@@ -48,6 +48,10 @@
   C.ResultsScreen = {
     render(root, result) {
       const victory = result.outcome === "victory";
+      const asyncRaid = Boolean(result.asyncRaid);
+      const defenderName = asyncRaid
+        ? C.UI.escapeHtml(result.asyncRaid.defender.displayName || "Unknown Cult")
+        : "";
       const rewardCards = Object.entries(result.rewards).map(([resource, amount]) => `
         <div class="reward-card reward-${resource}">
           <span class="resource-icon ${resource === "devotion" ? "devotion-icon" : `${resource}-icon`}"></span>
@@ -59,10 +63,16 @@
       root.innerHTML = `
         <section class="results-screen screen ${victory ? "is-victory" : "is-defeat"}">
           <div class="result-sigil" aria-hidden="true"><span>${victory ? "&#9790;" : "X"}</span></div>
-          <p class="eyebrow">${victory ? "Expedition complete" : "Expedition interrupted"}</p>
-          <h1>${victory ? "Brute Extinguished" : "Bonked by Candlelight"}</h1>
+          <p class="eyebrow">${asyncRaid ? "Asynchronous raid report" : victory ? "Expedition complete" : "Expedition interrupted"}</p>
+          <h1>${asyncRaid
+            ? victory ? "Cult Raided" : "Defense Held"
+            : victory ? "Brute Extinguished" : "Bonked by Candlelight"}</h1>
           <p class="result-summary">
-            ${victory
+            ${asyncRaid
+              ? victory
+                ? `${defenderName}'s saved defenses were defeated. The defender will see the result later.`
+                : `${defenderName}'s guards held the shrine. The battle report has still been recorded.`
+              : victory
               ? "Three rooms cleared. The Wax-Head Brute has reconsidered being on fire."
               : `${result.roomsCleared || 0} room${result.roomsCleared === 1 ? "" : "s"} cleared before a dignified retreat.`}
           </p>
@@ -77,12 +87,21 @@
             </div>
           ` : ""}
 
-          ${relicMarkup(result)}
-          ${recruitMarkup(result, victory)}
+          ${asyncRaid ? `
+            <div class="async-report-card">
+              <span>${result.asyncRecordError ? "Local report only" : "Raid result recorded"}</span>
+              <strong>${defenderName}</strong>
+              <small>${result.asyncRecordError
+                ? "Firebase was unavailable. Your local rewards are safe."
+                : C.MultiplayerService.mode === "firebase"
+                  ? "Stored in Firestore for the defender inbox."
+                  : "Stored in mock multiplayer history."}</small>
+            </div>
+          ` : `${relicMarkup(result)}${recruitMarkup(result, victory)}`}
 
           <button id="return-camp" class="button button-primary button-huge">
             Return to Camp
-            <small>${C.store.getPendingEvent() ? "Something is happening back home" : "Your followers are pretending to work"}</small>
+            <small>${asyncRaid ? "Check the multiplayer inbox" : C.store.getPendingEvent() ? "Something is happening back home" : "Your followers are pretending to work"}</small>
           </button>
         </section>
       `;
