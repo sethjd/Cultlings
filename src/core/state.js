@@ -30,8 +30,17 @@
       followers: followerIds,
       relics: [],
       enemies: [],
-      cosmetics: starterCosmetics()
+      cosmetics: starterCosmetics(),
+      biomes: [],
+      blessings: []
     };
+  }
+
+  function defaultBiomeProgress() {
+    return Object.fromEntries(C.RAID_DATA.biomes.map((biome) => [
+      biome.id,
+      { visited: false, clears: 0, bossDefeats: 0, bestRating: "", enemies: [] }
+    ]));
   }
 
   function defaultState() {
@@ -97,6 +106,7 @@
         }
       },
       discoveries: starterDiscoveries(followers),
+      biomeProgress: defaultBiomeProgress(),
       pendingEventId: null,
       lastEventAt: Date.now(),
       multiplayer: {
@@ -176,8 +186,21 @@
           ...starterCosmetics(),
           ...(Array.isArray(saved.cosmetics && saved.cosmetics.unlocked) ? saved.cosmetics.unlocked : []),
           ...(Array.isArray(saved.discoveries && saved.discoveries.cosmetics) ? saved.discoveries.cosmetics : [])
-        ]))
+        ])),
+        biomes: Array.isArray(saved.discoveries && saved.discoveries.biomes) ? saved.discoveries.biomes : [],
+        blessings: Array.isArray(saved.discoveries && saved.discoveries.blessings) ? saved.discoveries.blessings : []
       },
+      biomeProgress: Object.fromEntries(C.RAID_DATA.biomes.map((biome) => [
+        biome.id,
+        {
+          ...defaultBiomeProgress()[biome.id],
+          ...((saved.biomeProgress && saved.biomeProgress[biome.id]) || {}),
+          enemies: Array.isArray(saved.biomeProgress && saved.biomeProgress[biome.id] &&
+            saved.biomeProgress[biome.id].enemies)
+            ? saved.biomeProgress[biome.id].enemies
+            : []
+        }
+      ])),
       ritualCooldowns: { ...defaults.ritualCooldowns, ...(saved.ritualCooldowns || {}) },
       followers,
       relics: Array.isArray(saved.relics) ? saved.relics : [],
@@ -458,12 +481,65 @@
     }
 
     discoverEnemyByName(enemyName) {
-      const entry = C.RETENTION.collections.enemies.find((item) => (
-        item.match === enemyName || (item.id === "cultGuard" && ![
-          "Candle Goblin", "Bone Beetle", "Hex Wisp", "The Wax-Head Brute"
-        ].includes(enemyName))
-      ));
+      const entry = C.RETENTION.collections.enemies.find((item) => item.match === enemyName) ||
+        C.RETENTION.collections.enemies.find((item) => item.id === "cultGuard");
       if (entry) this.discover("enemies", entry.id);
+    }
+
+    getBiome(biomeId) {
+      return C.RAID_DATA.biomes.find((biome) => biome.id === biomeId) || C.RAID_DATA.biomes[0];
+    }
+
+    isBiomeUnlocked(biomeId) {
+      return this.getRank() >= this.getBiome(biomeId).requiredRank;
+    }
+
+    getBiomeProgress(biomeId) {
+      return this.state.biomeProgress[biomeId] || defaultBiomeProgress()[biomeId];
+    }
+
+    visitBiome(biomeId) {
+      if (!this.isBiomeUnlocked(biomeId)) return false;
+      const progress = this.state.biomeProgress[biomeId];
+      progress.visited = true;
+      this.discover("biomes", biomeId);
+      this.save();
+      this.notify("biomeVisited", { biomeId });
+      return true;
+    }
+
+    discoverRunEnemy(biomeId, enemyName) {
+      this.discoverEnemyByName(enemyName);
+      const entry = C.RETENTION.collections.enemies.find((item) => item.match === enemyName) ||
+        C.RETENTION.collections.enemies.find((item) => item.id === "cultGuard");
+      const progress = this.state.biomeProgress[biomeId];
+      if (entry && progress && !progress.enemies.includes(entry.id)) {
+        progress.enemies.push(entry.id);
+        this.save();
+      }
+    }
+
+    discoverBlessing(blessingId) {
+      return this.discover("blessings", blessingId);
+    }
+
+    getRaidRating(result) {
+      if (result.outcome !== "victory") return "Cursed";
+      const damageTaken = result.stats ? result.stats.damageTaken : 0;
+      if (damageTaken === 0) return "Moon-Blessed";
+      if (damageTaken <= 2) return "Glorious";
+      return "Grim";
+    }
+
+    recordBiomeResult(result) {
+      if (!result.biomeId || !this.state.biomeProgress[result.biomeId]) return;
+      const progress = this.state.biomeProgress[result.biomeId];
+      progress.visited = true;
+      if (result.outcome === "victory") progress.clears += 1;
+      if (result.bossDefeated) progress.bossDefeats += 1;
+      const rating = result.rating || this.getRaidRating(result);
+      const ratingValue = { "": -1, Cursed: 0, Grim: 1, Glorious: 2, "Moon-Blessed": 3 };
+      if (ratingValue[rating] > ratingValue[progress.bestRating || ""]) progress.bestRating = rating;
     }
 
     getUnlockedTitles() {
@@ -531,8 +607,14 @@
           followers: [...this.state.discoveries.followers],
           relics: [...this.state.discoveries.relics],
           enemies: [...this.state.discoveries.enemies],
-          cosmetics: [...this.state.discoveries.cosmetics]
-        }
+          cosmetics: [...this.state.discoveries.cosmetics],
+          biomes: [...this.state.discoveries.biomes],
+          blessings: [...this.state.discoveries.blessings]
+        },
+        biomeProgress: Object.fromEntries(Object.entries(this.state.biomeProgress).map(([biomeId, progress]) => [
+          biomeId,
+          { ...progress, enemies: [...progress.enemies] }
+        ]))
       };
     }
 
@@ -602,7 +684,9 @@
             ...starterCosmetics(),
             ...(Array.isArray(cloudSave.cosmetics && cloudSave.cosmetics.unlocked) ? cloudSave.cosmetics.unlocked : []),
             ...(Array.isArray(cloudSave.discoveries.cosmetics) ? cloudSave.discoveries.cosmetics : [])
-          ]))
+          ])),
+          biomes: Array.isArray(cloudSave.discoveries.biomes) ? cloudSave.discoveries.biomes : [],
+          blessings: Array.isArray(cloudSave.discoveries.blessings) ? cloudSave.discoveries.blessings : []
         };
       } else {
         this.state.discoveries.followers = Array.from(new Set([
@@ -612,6 +696,19 @@
         this.state.discoveries.relics = Array.from(new Set([
           ...this.state.discoveries.relics,
           ...this.state.relics
+        ]));
+      }
+      if (cloudSave.biomeProgress) {
+        this.state.biomeProgress = Object.fromEntries(C.RAID_DATA.biomes.map((biome) => [
+          biome.id,
+          {
+            ...defaultBiomeProgress()[biome.id],
+            ...(cloudSave.biomeProgress[biome.id] || {}),
+            enemies: Array.isArray(cloudSave.biomeProgress[biome.id] &&
+              cloudSave.biomeProgress[biome.id].enemies)
+              ? cloudSave.biomeProgress[biome.id].enemies
+              : []
+          }
         ]));
       }
       this.ensureDailyQuests();
@@ -1035,6 +1132,7 @@
         if (outcome === "victory") this.state.profile.stats.asyncWins += 1;
         else this.state.profile.stats.asyncLosses += 1;
       }
+      if (result && typeof result === "object") this.recordBiomeResult(result);
       if (!this.state.pendingEventId && Math.random() < 0.62) this.queueCampEvent();
       this.save();
     }

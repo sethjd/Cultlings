@@ -29,7 +29,8 @@
       result.rewards = C.store.applyRaidRewardBonuses(result.rewards);
       C.store.addResources(result.rewards, "raidRewards");
       if (result.outcome === "victory") {
-        result.xp = result.asyncRaid ? Math.ceil(C.store.getRaidXP() * 0.65) : C.store.getRaidXP();
+        const roomBonus = result.asyncRaid ? 0 : Math.max(0, (result.roomsCleared || 0) - 4) * 2;
+        result.xp = result.asyncRaid ? Math.ceil(C.store.getRaidXP() * 0.65) : C.store.getRaidXP() + roomBonus;
         result.ranksGained = C.store.addXP(result.xp, "Raid cleared");
       } else {
         result.xp = 0;
@@ -39,10 +40,14 @@
         const follower = C.store.recruitFollower();
         result.follower = follower;
       }
-      if (!result.asyncRaid && result.outcome === "victory" && C.store.isUnlocked(3) && Math.random() < C.DATA.raid.relicChance) {
-        result.relicId = C.store.getRandomRelicId();
+      if (!result.asyncRaid && result.outcome === "victory" && C.store.isUnlocked(3)) {
+        result.relicId = result.runRelicId ||
+          (Math.random() < C.DATA.raid.relicChance ? C.store.getRandomRelicId() : null);
+      }
+      if (result.relicId) {
         result.relicResult = C.store.addRelic(result.relicId);
       }
+      result.rating = C.store.getRaidRating(result);
       C.store.recordRaid(result);
       if (result.asyncRaid) {
         try {

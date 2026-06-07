@@ -46,11 +46,20 @@
   }
 
   function raidRating(result) {
-    if (result.outcome !== "victory") return "Cursed";
-    const damageTaken = result.stats ? result.stats.damageTaken : 0;
-    if (damageTaken === 0) return "Moon-Blessed";
-    if (damageTaken <= 2) return "Glorious";
-    return "Grim";
+    return result.rating || C.store.getRaidRating(result);
+  }
+
+  function blessingMarkup(result) {
+    if (!Array.isArray(result.blessings) || !result.blessings.length) return "";
+    return `
+      <div class="result-blessings">
+        <span>Dark Blessings used</span>
+        <div>${result.blessings.map((blessingId) => {
+          const blessing = C.RAID_DATA.blessings.find((item) => item.id === blessingId);
+          return blessing ? `<strong>${C.UI.escapeHtml(blessing.name)}</strong>` : "";
+        }).join("")}</div>
+      </div>
+    `;
   }
 
   C.ResultsScreen = {
@@ -62,6 +71,8 @@
         : "";
       const stats = result.stats || { enemiesDefeated: 0, damageTaken: 0 };
       const rating = raidRating(result);
+      const biomeName = C.UI.escapeHtml(result.biomeName || "Candlewood Grove");
+      const bossName = C.UI.escapeHtml(result.bossName || "The Wax-Head Brute");
       const rewardCards = Object.entries(result.rewards).map(([resource, amount]) => `
         <div class="reward-card reward-${resource}">
           <span class="resource-icon ${resource === "devotion" ? "devotion-icon" : `${resource}-icon`}"></span>
@@ -76,14 +87,14 @@
           <p class="eyebrow">${asyncRaid ? "Asynchronous raid report" : victory ? "Expedition complete" : "Expedition interrupted"}</p>
           <h1>${asyncRaid
             ? victory ? "Cult Raided" : "Defense Held"
-            : victory ? "Brute Extinguished" : "Bonked by Candlelight"}</h1>
+            : victory ? `${bossName} Defeated` : result.abandoned ? "Raid Abandoned" : "Bonked by Moonlight"}</h1>
           <p class="result-summary">
             ${asyncRaid
               ? victory
                 ? `${defenderName}'s saved defenses were defeated. The defender will see the result later.`
                 : `${defenderName}'s guards held the shrine. The battle report has still been recorded.`
               : victory
-              ? "Three rooms cleared. The Wax-Head Brute has reconsidered being on fire."
+              ? `${result.roomsCleared || 0} rooms cleared in ${biomeName}. The guardian has reconsidered its position.`
               : `${result.roomsCleared || 0} room${result.roomsCleared === 1 ? "" : "s"} cleared before a dignified retreat.`}
           </p>
 
@@ -97,6 +108,8 @@
             <div><span>Damage taken</span><strong data-count-to="${stats.damageTaken || 0}">0</strong></div>
             <div><span>Rooms cleared</span><strong data-count-to="${result.roomsCleared || 0}">0</strong></div>
           </div>
+
+          ${blessingMarkup(result)}
 
           <div class="reward-grid">${rewardCards}</div>
 

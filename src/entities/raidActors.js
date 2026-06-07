@@ -390,16 +390,37 @@
     constructor(x, y) {
       super(x, y, { radius: 32, speed: 31, health: 26, damage: 2, name: "The Wax-Head Brute" });
       this.isBoss = true;
+      this.bossId = "waxBrute";
+      this.phase = 1;
       this.dangerCooldown = 2.1;
+      this.volleyCooldown = 3.6;
     }
 
     update(delta, player, world) {
       this.updateTimers(delta);
-      this.chase(delta, player);
+      if (this.phase === 1 && this.health <= this.maxHealth / 2) {
+        this.phase = 2;
+        this.speed *= 1.18;
+        world.bossPhase(this);
+      }
+      this.chase(delta, player, this.phase === 2 ? 1.08 : 1);
       this.dangerCooldown -= delta;
+      this.volleyCooldown -= delta;
       if (this.dangerCooldown <= 0) {
-        world.spawnDanger(player.x, player.y);
-        this.dangerCooldown = this.health < this.maxHealth / 2 ? 1.7 : 2.35;
+        world.spawnDanger(player.x, player.y, {
+          radius: this.phase === 2 ? 42 : 34,
+          color: "#ff765f",
+          warning: 1.15
+        });
+        this.dangerCooldown = this.phase === 2 ? 1.55 : 2.35;
+      }
+      if (this.volleyCooldown <= 0) {
+        world.radialProjectiles(this.x, this.y, this.phase === 2 ? 8 : 5, {
+          speed: 88,
+          color: "#f2a35c",
+          radius: 7
+        });
+        this.volleyCooldown = this.phase === 2 ? 2.6 : 3.8;
       }
     }
 
@@ -435,6 +456,396 @@
       ctx.ellipse(-8, -35, 7, 16, 0.25, 0, Math.PI * 2);
       ctx.ellipse(10, -31, 6, 19, -0.15, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  class SporeImp extends BaseEnemy {
+    constructor(x, y) {
+      super(x, y, { radius: 14, speed: 82, health: 3, name: "Spore Imp" });
+      this.deathEffect = "poison";
+    }
+
+    update(delta, player) {
+      this.updateTimers(delta);
+      this.chase(delta, player, 1 + (Math.sin(this.phase + performance.now() * 0.008) * 0.08));
+    }
+
+    draw(ctx, time) {
+      const bob = Math.sin(time * 0.012 + this.phase) * 3;
+      ctx.save();
+      ctx.translate(this.x, this.y + bob);
+      ctx.fillStyle = "rgba(144, 222, 141, .2)";
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = this.hitFlash > 0 ? "#fff4d2" : "#7eae73";
+      ctx.beginPath();
+      ctx.ellipse(0, 6, 13, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#b7759e";
+      ctx.beginPath();
+      ctx.arc(0, -8, 16, Math.PI, Math.PI * 2);
+      ctx.lineTo(12, -2);
+      ctx.lineTo(-12, -2);
+      ctx.closePath();
+      ctx.fill();
+      drawEyes(ctx, 5, 3, "#f1efad");
+      ctx.restore();
+    }
+  }
+
+  class BogSkull extends BaseEnemy {
+    constructor(x, y) {
+      super(x, y, { radius: 19, speed: 27, health: 6, name: "Bog Skull" });
+      this.shotCooldown = 1.1;
+    }
+
+    update(delta, player, world) {
+      this.updateTimers(delta);
+      this.shotCooldown -= delta;
+      const dx = player.x - this.x;
+      const dy = player.y - this.y;
+      const length = Math.max(1, Math.hypot(dx, dy));
+      if (length > 215) this.chase(delta, player);
+      if (length < 120) {
+        this.x -= (dx / length) * this.speed * delta;
+        this.y -= (dy / length) * this.speed * delta;
+      }
+      if (this.shotCooldown <= 0) {
+        this.attackWarning = 0.25;
+        world.spawnProjectile(this.x, this.y, dx / length, dy / length, {
+          speed: 72,
+          color: "#8fd29a",
+          radius: 8
+        });
+        this.shotCooldown = 2.5;
+      }
+    }
+
+    draw(ctx, time) {
+      ctx.save();
+      ctx.translate(this.x, this.y + Math.sin(time * 0.004 + this.phase) * 2);
+      ctx.fillStyle = "rgba(91, 151, 114, .24)";
+      ctx.beginPath();
+      ctx.ellipse(0, 12, 25, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = this.hitFlash > 0 ? "#fff4d2" : "#c8c8a8";
+      ctx.beginPath();
+      ctx.arc(0, -1, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#24322e";
+      ctx.beginPath();
+      ctx.arc(-7, -4, 5, 0, Math.PI * 2);
+      ctx.arc(7, -4, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(-7, 8, 14, 4);
+      ctx.restore();
+    }
+  }
+
+  class GraveCandle extends BaseEnemy {
+    constructor(x, y) {
+      super(x, y, { radius: 17, speed: 0, health: 8, name: "Grave Candle" });
+      this.shotCooldown = 0.8;
+    }
+
+    update(delta, player, world) {
+      this.updateTimers(delta);
+      this.shotCooldown -= delta;
+      if (this.shotCooldown <= 0) {
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+        const length = Math.max(1, Math.hypot(dx, dy));
+        this.attackWarning = 0.32;
+        world.spawnProjectile(this.x, this.y, dx / length, dy / length, {
+          speed: 104,
+          color: "#e99762",
+          radius: 6
+        });
+        this.shotCooldown = 1.75;
+      }
+    }
+
+    draw(ctx, time) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.fillStyle = this.hitFlash > 0 ? "#fff4d2" : "#d8cfb2";
+      ctx.fillRect(-11, -17, 22, 40);
+      ctx.fillStyle = "#9b8c73";
+      ctx.beginPath();
+      ctx.ellipse(-6, 0, 5, 14, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#f1a35e";
+      ctx.beginPath();
+      ctx.moveTo(0, -42);
+      ctx.quadraticCurveTo(16, -24, 0, -17);
+      ctx.quadraticCurveTo(-13, -27, 0, -42);
+      ctx.fill();
+      ctx.fillStyle = "#30263a";
+      ctx.beginPath();
+      ctx.arc(0, 2, 7, 0, Math.PI * 2);
+      ctx.fill();
+      drawEyes(ctx, 3, 1, "#ffc878");
+      ctx.restore();
+    }
+  }
+
+  class BellWraith extends BaseEnemy {
+    constructor(x, y) {
+      super(x, y, { radius: 16, speed: 52, health: 5, name: "Bell Wraith" });
+      this.phaseTimer = 1.5;
+      this.phased = false;
+    }
+
+    canBeHit() {
+      return !this.phased;
+    }
+
+    update(delta, player) {
+      this.updateTimers(delta);
+      this.phaseTimer -= delta;
+      if (this.phaseTimer <= 0) {
+        this.phased = !this.phased;
+        this.phaseTimer = this.phased ? 0.55 : 1.9;
+      }
+      this.chase(delta, player, this.phased ? 1.45 : 0.9);
+    }
+
+    draw(ctx, time) {
+      ctx.save();
+      ctx.globalAlpha = this.phased ? 0.28 : 0.88;
+      ctx.translate(this.x, this.y + Math.sin(time * 0.007 + this.phase) * 5);
+      ctx.fillStyle = this.hitFlash > 0 ? "#fff4d2" : "#9386bd";
+      ctx.beginPath();
+      ctx.arc(0, -6, 15, 0, Math.PI * 2);
+      ctx.moveTo(-13, 4);
+      ctx.quadraticCurveTo(-8, 28, 0, 13);
+      ctx.quadraticCurveTo(9, 30, 14, 3);
+      ctx.fill();
+      ctx.strokeStyle = "#d9cfaa";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, -8, 10, Math.PI, 0);
+      ctx.stroke();
+      drawEyes(ctx, 5, -7, "#f2e7b7");
+      ctx.restore();
+    }
+  }
+
+  class RootGrasper extends BaseEnemy {
+    constructor(x, y) {
+      super(x, y, { radius: 21, speed: 24, health: 7, name: "Root Grasper" });
+      this.rootCooldown = 1.4;
+    }
+
+    update(delta, player, world) {
+      this.updateTimers(delta);
+      this.chase(delta, player, 0.65);
+      this.rootCooldown -= delta;
+      if (this.rootCooldown <= 0) {
+        world.spawnSlow(player.x, player.y, { radius: 38, duration: 3.4, color: "#7e5f8f" });
+        this.rootCooldown = 3.2;
+      }
+    }
+
+    draw(ctx, time) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.strokeStyle = this.hitFlash > 0 ? "#fff4d2" : "#76644d";
+      ctx.lineWidth = 7;
+      for (let index = 0; index < 5; index += 1) {
+        const angle = ((Math.PI * 2) / 5) * index + Math.sin(time * 0.003 + this.phase) * 0.1;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(Math.cos(angle) * 12, Math.sin(angle) * 12, Math.cos(angle) * 28, Math.sin(angle) * 28);
+        ctx.stroke();
+      }
+      ctx.fillStyle = "#493f32";
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fill();
+      drawEyes(ctx, 5, -2, "#bfe09d");
+      ctx.restore();
+    }
+  }
+
+  class TinyHeretic extends BaseEnemy {
+    constructor(x, y) {
+      super(x, y, { radius: 14, speed: 76, health: 4, name: "Tiny Heretic" });
+      this.buffCooldown = 1;
+    }
+
+    update(delta, player, world) {
+      this.updateTimers(delta);
+      const dx = this.x - player.x;
+      const dy = this.y - player.y;
+      const length = Math.max(1, Math.hypot(dx, dy));
+      this.x += (dx / length) * this.speed * delta;
+      this.y += (dy / length) * this.speed * delta;
+      this.buffCooldown -= delta;
+      if (this.buffCooldown <= 0) {
+        world.buffEnemies(this);
+        this.buffCooldown = 3.4;
+      }
+    }
+
+    draw(ctx, time) {
+      ctx.save();
+      ctx.translate(this.x, this.y + Math.sin(time * 0.01 + this.phase) * 2);
+      ctx.fillStyle = this.hitFlash > 0 ? "#fff4d2" : "#c56e83";
+      ctx.beginPath();
+      ctx.ellipse(0, 5, 13, 17, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#30243a";
+      ctx.beginPath();
+      ctx.moveTo(-14, -4);
+      ctx.lineTo(0, -24);
+      ctx.lineTo(14, -4);
+      ctx.closePath();
+      ctx.fill();
+      drawEyes(ctx, 5, 1, "#f8dd8b");
+      ctx.strokeStyle = "rgba(239, 128, 160, .5)";
+      ctx.beginPath();
+      ctx.arc(0, 0, 23 + Math.sin(time * 0.01) * 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  class BigWetProphet extends BaseEnemy {
+    constructor(x, y) {
+      super(x, y, { radius: 34, speed: 27, health: 30, damage: 2, name: "The Big Wet Prophet" });
+      this.isBoss = true;
+      this.bossId = "wetProphet";
+      this.phase = 1;
+      this.spitCooldown = 1.4;
+      this.puddleCooldown = 2.2;
+    }
+
+    update(delta, player, world) {
+      this.updateTimers(delta);
+      if (this.phase === 1 && this.health <= this.maxHealth / 2) {
+        this.phase = 2;
+        world.bossPhase(this);
+        world.spawnEnemy("sporeImp", this.x - 50, this.y + 30);
+        world.spawnEnemy("sporeImp", this.x + 50, this.y + 30);
+      }
+      const dx = player.x - this.x;
+      const dy = player.y - this.y;
+      const length = Math.max(1, Math.hypot(dx, dy));
+      if (length > 170) this.chase(delta, player);
+      this.spitCooldown -= delta;
+      this.puddleCooldown -= delta;
+      if (this.spitCooldown <= 0) {
+        const count = this.phase === 2 ? 5 : 3;
+        for (let index = 0; index < count; index += 1) {
+          const spread = (index - ((count - 1) / 2)) * 0.18;
+          const angle = Math.atan2(dy, dx) + spread;
+          world.spawnProjectile(this.x, this.y, Math.cos(angle), Math.sin(angle), {
+            speed: 76,
+            color: "#90d894",
+            radius: 8
+          });
+        }
+        this.spitCooldown = this.phase === 2 ? 1.55 : 2.2;
+      }
+      if (this.puddleCooldown <= 0) {
+        world.spawnSlow(player.x, player.y, { radius: this.phase === 2 ? 48 : 40, duration: 4, color: "#6f9c83", damage: 1 });
+        this.puddleCooldown = this.phase === 2 ? 2.25 : 3.2;
+      }
+    }
+
+    draw(ctx, time) {
+      ctx.save();
+      ctx.translate(this.x, this.y + Math.sin(time * 0.003) * 3);
+      ctx.fillStyle = "rgba(102, 173, 137, .25)";
+      ctx.beginPath();
+      ctx.ellipse(0, 25, 48, 20, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = this.hitFlash > 0 ? "#fff4d2" : "#608e78";
+      ctx.beginPath();
+      ctx.ellipse(0, 5, 33, 37, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#313d43";
+      ctx.beginPath();
+      ctx.arc(0, -13, 25, 0, Math.PI * 2);
+      ctx.fill();
+      drawEyes(ctx, 10, -15, "#d4f29e");
+      ctx.fillStyle = "#ab6f9f";
+      ctx.beginPath();
+      ctx.arc(0, -35, 28, Math.PI, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  class SaintHollowbell extends BaseEnemy {
+    constructor(x, y) {
+      super(x, y, { radius: 31, speed: 34, health: 34, damage: 2, name: "Saint Hollowbell" });
+      this.isBoss = true;
+      this.bossId = "hollowbell";
+      this.phase = 1;
+      this.tollCooldown = 1.8;
+      this.echoCooldown = 3.4;
+    }
+
+    update(delta, player, world) {
+      this.updateTimers(delta);
+      if (this.phase === 1 && this.health <= this.maxHealth / 2) {
+        this.phase = 2;
+        this.speed *= 1.15;
+        world.bossPhase(this);
+        world.spawnEnemy("bellWraith", this.x - 55, this.y);
+        world.spawnEnemy("bellWraith", this.x + 55, this.y);
+      }
+      this.chase(delta, player, 0.72);
+      this.tollCooldown -= delta;
+      this.echoCooldown -= delta;
+      if (this.tollCooldown <= 0) {
+        world.radialProjectiles(this.x, this.y, this.phase === 2 ? 10 : 7, {
+          speed: 92,
+          color: "#d9cfaa",
+          radius: 6
+        });
+        this.tollCooldown = this.phase === 2 ? 1.85 : 2.55;
+      }
+      if (this.echoCooldown <= 0) {
+        world.spawnDanger(this.x, this.y, {
+          radius: this.phase === 2 ? 100 : 78,
+          color: "#b9a9df",
+          warning: 1.35,
+          damage: 1
+        });
+        this.echoCooldown = this.phase === 2 ? 2.8 : 3.8;
+      }
+    }
+
+    draw(ctx, time) {
+      ctx.save();
+      ctx.translate(this.x, this.y + Math.sin(time * 0.004) * 3);
+      ctx.fillStyle = "rgba(199, 190, 157, .16)";
+      ctx.beginPath();
+      ctx.arc(0, 0, 48, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = this.hitFlash > 0 ? "#fff4d2" : "#77708f";
+      ctx.beginPath();
+      ctx.moveTo(-30, -15);
+      ctx.quadraticCurveTo(0, -48, 30, -15);
+      ctx.lineTo(24, 28);
+      ctx.quadraticCurveTo(0, 42, -24, 28);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#201c2c";
+      ctx.beginPath();
+      ctx.arc(0, 0, 18, 0, Math.PI * 2);
+      ctx.fill();
+      drawEyes(ctx, 7, -2, "#eee3b4");
+      ctx.strokeStyle = "#d9cfaa";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, -17, 25, Math.PI, 0);
+      ctx.stroke();
       ctx.restore();
     }
   }
@@ -490,12 +901,15 @@
   }
 
   class HexProjectile {
-    constructor(x, y, directionX, directionY) {
+    constructor(x, y, directionX, directionY, options) {
+      const settings = options || {};
       this.x = x;
       this.y = y;
-      this.vx = directionX * 82;
-      this.vy = directionY * 82;
-      this.radius = 7;
+      this.vx = directionX * (settings.speed || 82);
+      this.vy = directionY * (settings.speed || 82);
+      this.radius = settings.radius || 7;
+      this.color = settings.color || "#c58af1";
+      this.damage = settings.damage || 1;
       this.life = 5;
     }
 
@@ -513,7 +927,7 @@
       ctx.beginPath();
       ctx.arc(0, 0, 14, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "#c58af1";
+      ctx.fillStyle = this.color;
       ctx.beginPath();
       ctx.moveTo(0, -8);
       ctx.lineTo(7, 0);
@@ -526,11 +940,15 @@
   }
 
   class DangerZone {
-    constructor(x, y) {
+    constructor(x, y, options) {
+      const settings = options || {};
       this.x = x;
       this.y = y;
-      this.radius = 34;
-      this.timer = 1.25;
+      this.radius = settings.radius || 34;
+      this.timer = settings.warning || 1.25;
+      this.startTimer = this.timer;
+      this.color = settings.color || "#ff765f";
+      this.damage = settings.damage || 1;
       this.hitPlayer = false;
     }
 
@@ -539,21 +957,60 @@
     }
 
     isDangerous() {
-      return this.timer <= 0.55 && this.timer > 0;
+      return this.timer <= Math.min(0.55, this.startTimer * 0.45) && this.timer > 0;
     }
 
     draw(ctx) {
       const dangerous = this.isDangerous();
       ctx.save();
       ctx.translate(this.x, this.y);
-      ctx.fillStyle = dangerous ? "rgba(244, 105, 80, .42)" : "rgba(244, 166, 80, .12)";
-      ctx.strokeStyle = dangerous ? "#ff765f" : "#eaa258";
+      ctx.fillStyle = `${this.color}${dangerous ? "66" : "20"}`;
+      ctx.strokeStyle = `${this.color}${dangerous ? "ff" : "aa"}`;
       ctx.lineWidth = dangerous ? 5 : 2;
       ctx.setLineDash(dangerous ? [] : [5, 5]);
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  class SlowPatch {
+    constructor(x, y, options) {
+      const settings = options || {};
+      this.x = x;
+      this.y = y;
+      this.radius = settings.radius || 38;
+      this.timer = settings.duration || 3;
+      this.color = settings.color || "#7e5f8f";
+      this.damage = settings.damage || 0;
+      this.damageCooldown = 0;
+      this.warning = Number.isFinite(settings.warning) ? settings.warning : 0.45;
+    }
+
+    update(delta) {
+      this.timer -= delta;
+      this.warning = Math.max(0, this.warning - delta);
+      this.damageCooldown = Math.max(0, this.damageCooldown - delta);
+    }
+
+    isActive() {
+      return this.warning <= 0;
+    }
+
+    draw(ctx, time) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.fillStyle = `${this.color}${this.isActive() ? "44" : "18"}`;
+      ctx.strokeStyle = `${this.color}${this.isActive() ? "bb" : "88"}`;
+      ctx.lineWidth = this.isActive() ? 2 : 4;
+      ctx.setLineDash(this.isActive() ? [] : [6, 5]);
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius + Math.sin(time * 0.006) * 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]);
       ctx.restore();
     }
   }
@@ -606,8 +1063,17 @@
   C.BoneBeetle = BoneBeetle;
   C.HexWisp = HexWisp;
   C.WaxHeadBrute = WaxHeadBrute;
+  C.SporeImp = SporeImp;
+  C.BogSkull = BogSkull;
+  C.GraveCandle = GraveCandle;
+  C.BellWraith = BellWraith;
+  C.RootGrasper = RootGrasper;
+  C.TinyHeretic = TinyHeretic;
+  C.BigWetProphet = BigWetProphet;
+  C.SaintHollowbell = SaintHollowbell;
   C.DefenderGuard = DefenderGuard;
   C.HexProjectile = HexProjectile;
   C.DangerZone = DangerZone;
+  C.SlowPatch = SlowPatch;
   C.RaidPickup = RaidPickup;
 })();

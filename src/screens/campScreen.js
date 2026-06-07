@@ -282,7 +282,7 @@
                 data-relic="${relic.id}" ${isOwned && vaultBuilt ? "" : "disabled"}>
                 <span class="relic-symbol">${relic.symbol}</span>
                 <strong>${isOwned ? relic.name : "Unknown Relic"}</strong>
-                <small>${isOwned ? relic.description : "Defeat the Wax-Head Brute to discover it."}</small>
+                <small>${isOwned ? relic.description : "Defeat biome bosses and search treasure rooms to discover it."}</small>
                 ${isActive ? `<i>Active</i>` : ""}
               </button>
             `;
@@ -311,18 +311,42 @@
     return `
       <section class="camp-tab-panel" data-panel="raid">
         <div class="tab-intro">
-          <div><p class="eyebrow">Short expeditions</p><h2>Raid</h2></div>
+          <div><p class="eyebrow">Branching expeditions</p><h2>Choose a Biome</h2></div>
           <strong>${C.store.state.raidsCompleted} cleared</strong>
         </div>
-        <article class="raid-launch-card">
-          <div class="raid-launch-sigil">&#9790;</div>
-          <div>
-            <span>${C.store.isUnlocked(4) ? "Three rooms: clearing, ruins, altar" : "Three rooms through Candlewood"}</span>
-            <h3>${C.store.isUnlocked(4) ? "Candlewood and Cursed Ruins" : "Candlewood Descent"}</h3>
-            <p>Current raid stats: ${stats.maxHealth} health and ${stats.damage} damage.</p>
-            ${blessing ? `<strong class="prepared-bonus">Blessing of Tiny Teeth prepared: +1 damage for this raid.</strong>` : ""}
-          </div>
-          <button class="button button-primary" id="start-raid-panel">Start Raid</button>
+        <p class="tab-help">Choose between two rooms after every encounter. Runs last 4-6 rooms and end with a biome boss.</p>
+        ${blessing ? `<strong class="prepared-bonus">Blessing of Tiny Teeth prepared: +1 damage for the next raid.</strong>` : ""}
+        <div class="biome-card-grid">
+          ${C.RAID_DATA.biomes.map((biome) => {
+            const unlocked = C.store.isBiomeUnlocked(biome.id);
+            const progress = C.store.getBiomeProgress(biome.id);
+            return `
+              <article class="biome-card biome-card-${biome.id} ${unlocked ? "" : "is-locked"}"
+                style="--biome-card-accent:${biome.theme.accent};--biome-card-top:${biome.theme.top};--biome-card-bottom:${biome.theme.bottom}">
+                <div class="biome-card-art" aria-hidden="true"><i></i><i></i><i></i></div>
+                <div class="biome-card-copy">
+                  <span>${unlocked ? `${biome.enemyPool || biome.enemies.length} enemy types` : `Unlocks at Godling Rank ${biome.requiredRank}`}</span>
+                  <h3>${biome.name}</h3>
+                  <p>${biome.tagline}</p>
+                  <small>Boss: ${biome.bossName}</small>
+                </div>
+                <div class="biome-progress">
+                  <div><span>Clears</span><strong>${progress.clears}</strong></div>
+                  <div><span>Bosses</span><strong>${progress.bossDefeats}</strong></div>
+                  <div><span>Best</span><strong>${progress.bestRating || "-"}</strong></div>
+                </div>
+                <button class="button ${unlocked ? "button-primary" : "button-muted"}"
+                  data-start-biome="${biome.id}" ${unlocked ? "" : "disabled"}>
+                  ${unlocked ? `Raid ${biome.name}` : `Rank ${biome.requiredRank} Required`}
+                </button>
+              </article>
+            `;
+          }).join("")}
+        </div>
+        <article class="raid-stat-card">
+          <span>Current raid stats</span>
+          <strong>${stats.maxHealth} health / ${stats.damage} damage</strong>
+          <small>Dark Blessings reset when each raid ends.</small>
         </article>
         <div class="raid-prep-grid">
           <button data-tab-jump="buildings"><span>Power</span><strong>Buildings</strong><small>Training, housing, kitchen, and shrine</small></button>
@@ -429,6 +453,23 @@
         C.store.state.discoveries.enemies.includes(entry.id)
       )).join("");
     }
+    if (collectionCategory === "biomes") {
+      return C.RAID_DATA.biomes.map((biome) => {
+        const progress = C.store.getBiomeProgress(biome.id);
+        return collectionEntry({
+          id: biome.id,
+          name: biome.name,
+          icon: biome.id === "candlewood" ? "WOOD" : biome.id === "moldmoon" ? "MOLD" : "BELL",
+          description: `${biome.tagline} Boss: ${biome.bossName}.`
+        }, C.store.state.discoveries.biomes.includes(biome.id), progress.clears);
+      }).join("");
+    }
+    if (collectionCategory === "blessings") {
+      return C.RAID_DATA.blessings.map((blessing) => collectionEntry(
+        blessing,
+        C.store.state.discoveries.blessings.includes(blessing.id)
+      )).join("");
+    }
     return `
       <div class="cosmetic-category-tabs">
         ${Object.entries(C.RETENTION.cosmeticCategories).map(([key, label]) => `
@@ -446,6 +487,8 @@
       followers: "Followers",
       relics: "Relics",
       enemies: "Enemies",
+      biomes: "Biomes",
+      blessings: "Blessings",
       cosmetics: "Cosmetics"
     };
     return `
@@ -928,8 +971,10 @@
       return;
     }
 
-    if (event.target.closest("#start-raid-panel")) {
-      C.App.show("raid");
+    const biomeButton = event.target.closest("[data-start-biome]");
+    if (biomeButton) {
+      const biomeId = biomeButton.dataset.startBiome;
+      if (C.store.isBiomeUnlocked(biomeId)) C.App.show("raid", { biomeId });
       return;
     }
 
@@ -1199,9 +1244,9 @@
           <div class="camp-bottom-bar">
             <div>
               <span>Next expedition</span>
-              <strong>${C.store.isUnlocked(4) ? "Candlewood + Cursed Ruins" : "Candlewood Descent"}</strong>
+              <strong>Candlewood Grove</strong>
             </div>
-            <button id="start-raid" class="button button-primary">Start Raid</button>
+            <button id="start-raid" class="button button-primary">Quick Raid</button>
           </div>
         </section>
       `;

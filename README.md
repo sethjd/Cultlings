@@ -174,13 +174,17 @@ Client-generated multiplayer is still not cheat-proof. A production economy shou
 - cosmetic tokens earned through play
 - 25 original CSS/canvas cosmetics across masks, shrine skins, follower hats, banners, and ground sigils
 - player profile, selectable cult titles, and long-term statistics
-- collection book for follower traits, relics, enemies, and cosmetics
+- collection book for follower traits, relics, enemies, biomes, Dark Blessings, and cosmetics
 - follower jobs, traits, mood, housing, and food pressure
 - six buildings and five rituals
 - eight collectible relics
 - random camp choice events
-- three-room single-player raids
-- Candle Goblins, Bone Beetles, Hex Wisps, and the Wax-Head Brute
+- branching 4-6 room roguelite raids with two choices after each room
+- combat, elite, treasure, follower rescue, ritual shrine, camp supply, and boss rooms
+- Candlewood Grove, Moldmoon Marsh, and Bellbone Crypt biomes
+- 10 enemy types with distinct chase, ranged, turret, phase, poison, slow, and support behavior
+- three biome bosses with warning effects, two attack patterns, and phase changes at half health
+- eight temporary Dark Blessings that reset after every run
 - fixed mobile joystick with large attack, dodge, and Moon Pulse buttons
 - responsive attacks, knockback, hit flashes, damage numbers, health bars, and warning effects
 - dodge invulnerability, cooldown displays, boss-hit shake, and lightweight canvas particles
@@ -287,6 +291,53 @@ The raid controls stay fixed at the bottom of the screen and disable browser pan
 - Left click or `Space`: attack
 - Right click or `Shift`: dodge
 - `E`: Moon Pulse
+- `Escape`: pause or resume
+
+## Roguelite Raids
+
+Single-player expeditions now use a short branching map designed for phone sessions:
+
+- Each run lasts 4-6 rooms.
+- After a room, choose one of two large room cards.
+- The final room is always the selected biome's boss.
+- Combat rooms give normal resources.
+- Elite rooms are tougher and award a Dark Blessing.
+- Treasure rooms can reveal resources or a relic.
+- Follower Rescue rooms can recruit a new cultling.
+- Ritual Shrines offer healing, temporary power, or a Dark Blessing.
+- Camp Supplies focus on food and cursed wood.
+- Boss rooms give the largest resource reward, XP, biome progress, and a relic once the relic system is unlocked.
+
+Player health carries between rooms. The pause menu can resume, adjust volume, or abandon the run; abandoning keeps half of collected resources.
+
+## Biomes and Progression
+
+### Candlewood Grove
+
+Available from Godling Rank 1. Candle Goblins, Bone Beetles, Root Graspers, and Tiny Heretics guard the Wax-Head Brute. Rewards lean toward cursed wood.
+
+### Moldmoon Marsh
+
+Unlocks at Godling Rank 4. Spore Imps, Bog Skulls, Hex Wisps, and marsh creatures guard the Big Wet Prophet. Rewards lean toward food.
+
+### Bellbone Crypt
+
+Unlocks at Godling Rank 7. Bell Wraiths, Grave Candles, Bone Beetles, and echoing cult creatures guard Saint Hollowbell. Rewards lean toward bone shards.
+
+The Raid tab records clears, boss defeats, and best rating for each biome. Visiting biomes, defeating enemies and bosses, choosing blessings, and finding relics update the Collection Book.
+
+## Dark Blessings
+
+Dark Blessings are temporary run upgrades and never alter the permanent save after a raid:
+
+- Sharp Little Moon: extra attack damage
+- Candle Feet: faster movement
+- Bone Skin: more maximum health
+- Hungry Halo: healing after rooms
+- Echo Paw: occasional double hits
+- Mushroom Luck: larger room rewards
+- Tiny Thunder: shorter Moon Pulse cooldown
+- Doom Magnet: nearby pickups drift toward the player
 
 ## Known Next Steps
 
@@ -294,8 +345,9 @@ The raid controls stay fixed at the bottom of the screen and disable browser pan
 - Validate raid results with Cloud Functions
 - Optionally validate daily dates with trusted server time when online
 - Add replay seeds or deterministic combat summaries
+- Add more biome room events and alternate biome bosses
 - Add inbox pagination and result expiry
 - Add App Check and rate limiting
-- Add weapons, more defenses, rituals, traits, events, and bosses
+- Add weapons, more defenses, rituals, traits, and events
 - Add more quest templates, collection entries, and cosmetic previews
 - Add music, tutorial prompts, remappable controls, and expanded accessibility settings

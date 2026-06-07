@@ -95,8 +95,22 @@
         { id: "boneBeetle", match: "Bone Beetle", name: "Bone Beetle", icon: "BONE", description: "Not technically a beetle. Mostly bone. Still rude." },
         { id: "hexWisp", match: "Hex Wisp", name: "Hex Wisp", icon: "HEX", description: "Floats just out of reach because it knows." },
         { id: "waxBrute", match: "The Wax-Head Brute", name: "Wax-Head Brute", icon: "WAX", description: "A large argument against indoor candles." },
-        { id: "cultGuard", match: "Cult Guard", name: "Cult Guard", icon: "GUARD", description: "Another cultling with a stick and strong boundaries." }
-      ]
+        { id: "cultGuard", match: "Cult Guard", name: "Cult Guard", icon: "GUARD", description: "Another cultling with a stick and strong boundaries." },
+        { id: "sporeImp", match: "Spore Imp", name: "Spore Imp", icon: "SPORE", description: "Runs quickly and leaves a poisonous goodbye." },
+        { id: "bogSkull", match: "Bog Skull", name: "Bog Skull", icon: "BOG", description: "A wet skull with excellent aim and no body plan." },
+        { id: "graveCandle", match: "Grave Candle", name: "Grave Candle", icon: "WICK", description: "Stays still and makes that everyone else's problem." },
+        { id: "bellWraith", match: "Bell Wraith", name: "Bell Wraith", icon: "BELL", description: "Briefly phases out whenever manners become inconvenient." },
+        { id: "rootGrasper", match: "Root Grasper", name: "Root Grasper", icon: "ROOT", description: "Plants slowing roots beneath hurried little gods." },
+        { id: "tinyHeretic", match: "Tiny Heretic", name: "Tiny Heretic", icon: "RUN", description: "Runs away while loudly improving everyone else." },
+        { id: "wetProphet", match: "The Big Wet Prophet", name: "The Big Wet Prophet", icon: "WET", description: "Foretells rain from inside the rain." },
+        { id: "hollowbell", match: "Saint Hollowbell", name: "Saint Hollowbell", icon: "TOLL", description: "A holy echo wrapped around an extremely empty saint." }
+      ],
+      biomes: [
+        { id: "candlewood", name: "Candlewood Grove", icon: "WOOD", description: "A candlelit forest rooted in bone and bad navigation." },
+        { id: "moldmoon", name: "Moldmoon Marsh", icon: "MOLD", description: "A glowing swamp where every puddle has a prophecy." },
+        { id: "bellbone", name: "Bellbone Crypt", icon: "BELL", description: "An old crypt that refuses to stop ringing." }
+      ],
+      blessings: C.RAID_DATA ? C.RAID_DATA.blessings : []
     }
   };
 })();

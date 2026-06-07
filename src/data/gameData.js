@@ -2,7 +2,7 @@
   const C = window.Cultlings = window.Cultlings || {};
 
   C.DATA = {
-    version: 4,
+    version: 5,
     resources: {
       devotion: { label: "Devotion", short: "Devotion" },
       food: { label: "Food", short: "Food" },
@@ -19,8 +19,10 @@
       { rank: 1, xp: 0, unlock: "Camp, raids, upgrades, and Moon Chant" },
       { rank: 2, xp: 40, unlock: "Training Pit" },
       { rank: 3, xp: 105, unlock: "Relic Vault and raid relics" },
-      { rank: 4, xp: 185, unlock: "Cursed Ruins raid room" },
-      { rank: 5, xp: 285, unlock: "Follower job assignment" }
+      { rank: 4, xp: 185, unlock: "Moldmoon Marsh biome" },
+      { rank: 5, xp: 285, unlock: "Follower job assignment" },
+      { rank: 6, xp: 410, unlock: "Stronger elite raid rooms" },
+      { rank: 7, xp: 560, unlock: "Bellbone Crypt" }
     ],
     xpRewards: {
       raidClear: 28,

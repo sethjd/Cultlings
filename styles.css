@@ -3735,6 +3735,471 @@ strong {
   }
 }
 
+/* Roguelite raid map and biome runs */
+
+.raid-header-expanded {
+  grid-template-columns: minmax(0, 1fr) auto minmax(92px, 0.8fr);
+}
+
+.raid-pause-button {
+  width: 42px;
+  height: 38px;
+  border: 2px solid #55436d;
+  border-radius: 12px;
+  color: #eadfff;
+  background: #2a2039;
+  font-weight: 1000;
+}
+
+.raid-objective-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: min(100%, 420px);
+  margin: 0 auto 6px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: #c8bbd9;
+  background: rgba(18, 14, 29, 0.88);
+  font-size: 0.68rem;
+}
+
+.raid-objective-bar span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.raid-objective-bar strong {
+  color: var(--biome-accent, #f0a55f);
+  text-align: right;
+}
+
+.raid-blessing-strip {
+  display: flex;
+  gap: 5px;
+  width: min(100%, 420px);
+  min-height: 22px;
+  margin: 0 auto 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.raid-blessing-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.raid-blessing-strip span {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--biome-mist, #9d7be0) 55%, transparent);
+  border-radius: 999px;
+  color: #e9dcfa;
+  background: rgba(40, 29, 56, 0.9);
+  font-size: 0.58rem;
+  font-weight: 800;
+}
+
+.raid-blessing-strip.is-empty {
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+.raid-overlay {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 50% 25%, color-mix(in srgb, var(--biome-mist, #8063c5) 24%, transparent), transparent 46%),
+    rgba(10, 8, 17, 0.91);
+  overflow-y: auto;
+}
+
+.raid-choice-panel {
+  width: min(100%, 380px);
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  background: rgba(30, 23, 42, 0.95);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+  text-align: center;
+}
+
+.raid-choice-panel h2 {
+  margin: 2px 0 12px;
+  font-size: clamp(1.18rem, 5vw, 1.55rem);
+}
+
+.raid-map-path {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 10px 0 15px;
+}
+
+.raid-map-path i {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 2px solid #49385f;
+  border-radius: 50%;
+  color: #8f82a3;
+  background: #1a1426;
+  font-size: 0.64rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.raid-map-path i::after {
+  content: "";
+  position: absolute;
+}
+
+.raid-map-path i.is-cleared {
+  border-color: #759d82;
+  color: #e6f6df;
+  background: #315441;
+}
+
+.raid-map-path i.is-current {
+  border-color: var(--biome-accent, #f0a55f);
+  color: #fff4d2;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--biome-accent, #f0a55f) 42%, transparent);
+}
+
+.raid-room-choice-grid,
+.blessing-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.raid-room-choice,
+.blessing-choice-card,
+.room-event-actions button {
+  display: flex;
+  min-height: 126px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 9px;
+  border: 2px solid #4c3a62;
+  border-radius: 17px;
+  color: #efe6fa;
+  background: linear-gradient(160deg, #3a2b4d, #21182f);
+  box-shadow: 0 5px 0 #110d18;
+  text-align: center;
+}
+
+.raid-room-choice:active,
+.blessing-choice-card:active,
+.room-event-actions button:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #110d18;
+}
+
+.raid-room-choice > span,
+.blessing-choice-card > span {
+  display: grid;
+  min-width: 38px;
+  height: 34px;
+  place-items: center;
+  border-radius: 11px;
+  color: #1a1422;
+  background: var(--biome-accent, #f0a55f);
+  font-size: 0.68rem;
+  font-weight: 1000;
+}
+
+.raid-room-choice strong,
+.blessing-choice-card strong {
+  font-size: 0.85rem;
+}
+
+.raid-room-choice small,
+.blessing-choice-card small,
+.room-event-actions small {
+  color: #b9acc8;
+  font-size: 0.62rem;
+  line-height: 1.3;
+}
+
+.raid-room-choice.room-elite {
+  border-color: #a76073;
+}
+
+.raid-room-choice.room-boss {
+  grid-column: 1 / -1;
+  min-height: 145px;
+  border-color: #d66f63;
+  background: linear-gradient(160deg, #63353f, #2b1825);
+}
+
+.raid-map-note {
+  display: block;
+  margin-top: 12px;
+  color: #8e829c;
+}
+
+.blessing-choice-grid {
+  grid-template-columns: 1fr;
+}
+
+.blessing-choice-card {
+  min-height: 82px;
+  align-items: flex-start;
+  padding-left: 62px;
+  position: relative;
+  text-align: left;
+}
+
+.blessing-choice-card > span {
+  position: absolute;
+  left: 12px;
+}
+
+.room-event-panel p:not(.eyebrow) {
+  color: #bcafc9;
+  line-height: 1.45;
+}
+
+.room-event-icon {
+  display: grid;
+  width: 66px;
+  height: 66px;
+  place-items: center;
+  margin: 0 auto 12px;
+  border: 3px solid var(--biome-accent, #f0a55f);
+  border-radius: 22px;
+  color: #fff1ce;
+  background: #342541;
+  box-shadow: 0 0 28px color-mix(in srgb, var(--biome-accent, #f0a55f) 28%, transparent);
+  font-size: 1.4rem;
+  font-weight: 1000;
+}
+
+.room-event-actions {
+  display: grid;
+  gap: 9px;
+}
+
+.room-event-actions button {
+  min-height: 78px;
+}
+
+.room-event-actions strong {
+  font-size: 0.82rem;
+}
+
+.raid-pause-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.raid-setting-row {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border-radius: 13px;
+  color: #cfc0dc;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.7rem;
+  text-align: left;
+}
+
+.raid-controls.is-hidden {
+  display: none;
+}
+
+@media (max-width: 390px), (max-height: 740px) {
+  .raid-screen {
+    padding-top: 8px;
+  }
+
+  .raid-objective-bar {
+    margin-bottom: 3px;
+    padding: 5px 8px;
+  }
+
+  .raid-choice-panel {
+    padding: 13px;
+  }
+
+  .raid-room-choice {
+    min-height: 108px;
+  }
+}
+
+.biome-card-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.biome-card {
+  overflow: hidden;
+  border: 2px solid color-mix(in srgb, var(--biome-card-accent) 62%, #3e3150);
+  border-radius: 22px;
+  background: linear-gradient(145deg, var(--biome-card-top), var(--biome-card-bottom));
+  box-shadow: 0 8px 0 #17111f, 0 16px 28px rgba(0, 0, 0, 0.22);
+}
+
+.biome-card.is-locked {
+  filter: saturate(0.45);
+  opacity: 0.76;
+}
+
+.biome-card-art {
+  position: relative;
+  height: 76px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 60%, color-mix(in srgb, var(--biome-card-accent) 45%, transparent) 0 5px, transparent 6px),
+    radial-gradient(circle at 72% 35%, color-mix(in srgb, var(--biome-card-accent) 38%, transparent) 0 8px, transparent 9px),
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.18));
+}
+
+.biome-card-art i {
+  position: absolute;
+  bottom: -15px;
+  width: 40px;
+  height: 75px;
+  border: 7px solid color-mix(in srgb, var(--biome-card-accent) 42%, #242033);
+  border-radius: 50% 50% 0 0;
+}
+
+.biome-card-art i:nth-child(1) { left: 11%; transform: rotate(-12deg); }
+.biome-card-art i:nth-child(2) { left: 45%; height: 60px; }
+.biome-card-art i:nth-child(3) { right: 10%; transform: rotate(14deg); }
+
+.biome-card-copy {
+  padding: 14px 15px 8px;
+}
+
+.biome-card-copy > span,
+.raid-stat-card > span {
+  color: var(--biome-card-accent, #ad9ac6);
+  font-size: 0.61rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.biome-card-copy h3 {
+  margin: 3px 0 5px;
+  font-size: 1.08rem;
+}
+
+.biome-card-copy p,
+.biome-card-copy small {
+  color: #bcafc8;
+}
+
+.biome-card-copy p {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+}
+
+.biome-card-copy small {
+  font-size: 0.65rem;
+}
+
+.biome-progress {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin: 0 14px 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.biome-progress div {
+  display: grid;
+  gap: 2px;
+  padding: 7px 4px;
+  background: rgba(12, 10, 20, 0.42);
+  text-align: center;
+}
+
+.biome-progress span {
+  color: #9d90aa;
+  font-size: 0.55rem;
+}
+
+.biome-progress strong {
+  overflow: hidden;
+  color: #f1e7fb;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.biome-card > .button {
+  width: calc(100% - 28px);
+  margin: 0 14px 14px;
+}
+
+.raid-stat-card {
+  display: grid;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 13px 15px;
+  border: 1px solid #4a3a5d;
+  border-radius: 16px;
+  background: #251c32;
+}
+
+.raid-stat-card strong {
+  color: #eee3f7;
+}
+
+.raid-stat-card small {
+  color: #9f92ad;
+}
+
+.result-blessings {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid #4f3c67;
+  border-radius: 16px;
+  background: rgba(49, 35, 67, 0.74);
+  text-align: center;
+}
+
+.result-blessings > span {
+  color: #a89ab6;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.result-blessings div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.result-blessings strong {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #eadfff;
+  background: #49345f;
+  font-size: 0.66rem;
+}
+
 /* Camp interaction polish */
 
 .camp-map-button {
