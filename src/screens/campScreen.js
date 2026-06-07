@@ -9,6 +9,13 @@
   let multiplayerLoading = false;
   let multiplayerError = "";
 
+  function affordableUpgradeCount() {
+    return Object.entries(C.DATA.buildings).filter(([key, building]) => (
+      C.store.isUnlocked(building.requiredRank) &&
+      C.store.canAfford(C.store.getUpgradeCost(key))
+    )).length;
+  }
+
   function moodClass(follower) {
     return C.store.getMoodLabel(follower).toLowerCase();
   }
@@ -23,7 +30,8 @@
     const jobsUnlocked = C.store.isUnlocked(5);
     const mood = C.store.getMoodLabel(follower);
     return `
-      <article class="follower-card follower-card-expanded" style="--follower-color:${follower.color}; --delay:${index * -0.25}s">
+      <article class="follower-card follower-card-expanded" data-follower-detail="${follower.id}"
+        role="button" tabindex="0" style="--follower-color:${follower.color}; --delay:${index * -0.25}s">
         <div class="follower-avatar" aria-hidden="true">
           <i class="follower-ear ear-left"></i>
           <i class="follower-ear ear-right"></i>
@@ -69,28 +77,30 @@
         ${lowFood ? `<div class="camp-warning">The pantry echoes. Hungry followers work slowly and become unhappy.</div>` : ""}
         ${unhappy ? `<div class="camp-warning">${unhappy} follower${unhappy === 1 ? " is" : "s are"} unhappy. Food, housing, and rest will help.</div>` : ""}
 
-        <section class="camp-map camp-map-compact" aria-label="Cult camp">
+        <section class="camp-map camp-map-compact ${Date.now() < state.ritualBoostUntil ? "ritual-is-active" : ""}" aria-label="Cult camp">
           <div class="camp-sky" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
           <div class="purple-smoke smoke-one" aria-hidden="true"></div>
           <div class="purple-smoke smoke-two" aria-hidden="true"></div>
-          <div class="landmark shrine-landmark" aria-label="Moon Shrine">
+          <button class="landmark shrine-landmark camp-map-button" data-building-detail="shrine" aria-label="Open Moon Shrine">
             <span class="shrine-moon"></span><span class="shrine-roof"></span>
             <span class="shrine-door"></span><span class="landmark-label">Moon Shrine</span>
-          </div>
-          <div class="hut-row" aria-label="Follower huts">
+          </button>
+          <button class="hut-row camp-map-button" data-building-detail="huts" aria-label="Open Follower Huts">
             <div class="hut hut-one"><i></i></div>
             <div class="hut hut-two"><i></i></div>
             <div class="hut hut-three"><i></i></div>
-          </div>
-          <div class="ritual-landmark" aria-label="Ritual Circle">
+          </button>
+          <button class="ritual-landmark camp-map-button" data-building-detail="ritual" aria-label="Open Ritual Circle">
             <span class="ritual-rune">&#9790;</span>
             <i class="ritual-candle candle-a"></i>
             <i class="ritual-candle candle-b"></i>
             <i class="ritual-candle candle-c"></i>
-          </div>
-          <div class="camp-followers" aria-hidden="true">
+          </button>
+          <div class="camp-followers">
             ${state.followers.slice(0, 8).map((follower, index) => (
-              `<i style="--x:${14 + ((index * 23) % 74)}%;--y:${58 + ((index * 17) % 27)}%;--c:${follower.color};--d:${index * -0.25}s"></i>`
+              `<button class="camp-follower-dot" data-follower-detail="${follower.id}"
+                aria-label="Open ${C.UI.escapeHtml(follower.name)}"
+                style="--x:${14 + ((index * 23) % 74)}%;--y:${58 + ((index * 17) % 27)}%;--c:${follower.color};--d:${index * -0.25}s"></button>`
             )).join("")}
           </div>
         </section>
@@ -146,7 +156,8 @@
             const cost = C.store.getUpgradeCost(key);
             const affordable = C.store.canAfford(cost);
             return `
-              <article class="upgrade-card ${locked ? "is-locked" : ""}">
+              <article class="upgrade-card ${locked ? "is-locked" : ""} ${affordable && !locked ? "is-affordable" : ""}"
+                data-building-detail="${key}" role="button" tabindex="0">
                 <div class="building-copy">
                   <span class="upgrade-level">${level ? `Level ${level}` : "Not built"}</span>
                   <h3>${building.name}</h3>
@@ -390,6 +401,12 @@
       button.classList.toggle("is-active", selected);
       button.setAttribute("aria-selected", selected ? "true" : "false");
     });
+    const buildingTab = rootElement.querySelector('[data-tab="buildings"]');
+    if (buildingTab) {
+      const count = affordableUpgradeCount();
+      buildingTab.dataset.badge = count ? String(count) : "";
+      buildingTab.classList.toggle("has-badge", count > 0);
+    }
     renderEventModal();
     if (activeTab === "multiplayer" && !multiplayerLoaded && !multiplayerLoading) {
       loadMultiplayerData();
@@ -467,7 +484,89 @@
     rootElement.appendChild(modal);
   }
 
+  function closeDetailModal() {
+    if (!rootElement) return;
+    const modal = rootElement.querySelector("#camp-detail-modal");
+    if (modal) modal.remove();
+  }
+
+  function renderFollowerDetail(followerId) {
+    const follower = C.store.state.followers.find((item) => item.id === followerId);
+    if (!follower || !rootElement) return;
+    closeDetailModal();
+    const mood = C.store.getMoodLabel(follower);
+    const job = C.DATA.jobs[follower.job] || C.DATA.jobs.worshipper;
+    const trait = C.DATA.traits.find((item) => item.name === follower.trait);
+    const modal = document.createElement("div");
+    modal.id = "camp-detail-modal";
+    modal.className = "detail-backdrop";
+    modal.innerHTML = `
+      <section class="camp-detail-card" role="dialog" aria-modal="true" aria-labelledby="follower-detail-title">
+        <button class="detail-close" data-close-detail aria-label="Close detail">&times;</button>
+        <div class="detail-follower-heading">
+          <div class="follower-avatar" style="--follower-color:${follower.color}" aria-hidden="true">
+            <i class="follower-ear ear-left"></i><i class="follower-ear ear-right"></i>
+            <i class="follower-eye eye-left"></i><i class="follower-eye eye-right"></i>
+          </div>
+          <div><p class="eyebrow">${mood} cultling</p><h2 id="follower-detail-title">${C.UI.escapeHtml(follower.name)}</h2></div>
+        </div>
+        <div class="detail-stat-grid">
+          <div><span>Job</span><strong>${job.name}</strong></div>
+          <div><span>Mood</span><strong>${mood}</strong></div>
+          <div><span>Output</span><strong>${Math.round(C.store.getMoodMultiplier(follower) * C.store.getTraitProductionMultiplier(follower, follower.job) * 100)}%</strong></div>
+        </div>
+        <article class="detail-trait"><span>${C.UI.escapeHtml(follower.trait)}</span><p>${C.UI.escapeHtml(trait ? trait.detail : "")}</p></article>
+        <button class="button button-secondary" data-tab-jump="followers">Manage Job</button>
+      </section>
+    `;
+    rootElement.appendChild(modal);
+  }
+
+  function renderBuildingDetail(buildingKey) {
+    const building = C.DATA.buildings[buildingKey];
+    if (!building || !rootElement) return;
+    closeDetailModal();
+    const level = C.store.state.buildings[buildingKey];
+    const locked = !C.store.isUnlocked(building.requiredRank);
+    const cost = C.store.getUpgradeCost(buildingKey);
+    const affordable = C.store.canAfford(cost);
+    const modal = document.createElement("div");
+    modal.id = "camp-detail-modal";
+    modal.className = "detail-backdrop";
+    modal.innerHTML = `
+      <section class="camp-detail-card building-detail-card" role="dialog" aria-modal="true" aria-labelledby="building-detail-title">
+        <button class="detail-close" data-close-detail aria-label="Close detail">&times;</button>
+        <p class="eyebrow">${level ? `Level ${level}` : "Not built"}</p>
+        <h2 id="building-detail-title">${building.name}</h2>
+        <p>${building.description}</p>
+        <strong class="detail-effect">${C.store.getBuildingEffect(buildingKey)}</strong>
+        ${locked
+          ? `<div class="unlock-banner">Unlocks at Godling Rank ${building.requiredRank}.</div>`
+          : `<button class="button button-primary ${affordable ? "" : "button-muted"}" data-upgrade="${buildingKey}">
+              ${level ? "Upgrade" : "Build"} ${building.name}
+              <span class="cost-row">${C.UI.costMarkup(cost)}</span>
+            </button>`}
+      </section>
+    `;
+    rootElement.appendChild(modal);
+  }
+
   async function handleCampClick(event) {
+    if (event.target.closest("[data-close-detail]") || (
+      event.target.id === "camp-detail-modal"
+    )) {
+      closeDetailModal();
+      return;
+    }
+
+    const tabJump = event.target.closest("[data-tab-jump]");
+    if (tabJump) {
+      activeTab = tabJump.dataset.tabJump;
+      closeDetailModal();
+      renderActiveTab();
+      return;
+    }
+
     const tabButton = event.target.closest("[data-tab]");
     if (tabButton) {
       activeTab = tabButton.dataset.tab;
@@ -479,10 +578,12 @@
     if (upgradeButton) {
       const buildingKey = upgradeButton.dataset.upgrade;
       if (C.store.upgradeBuilding(buildingKey)) {
+        C.Audio.play("collect");
         C.UI.toast(`${C.DATA.buildings[buildingKey].name} improved. +${C.DATA.xpRewards.building} XP`, "success");
       } else {
         C.UI.toast("Not enough materials for that upgrade.", "warning");
       }
+      closeDetailModal();
       return;
     }
 
@@ -490,10 +591,23 @@
     if (ritualButton) {
       const ritualKey = ritualButton.dataset.ritual;
       if (C.store.performRitual(ritualKey)) {
+        C.Audio.play("ritual");
         C.UI.toast(`${C.DATA.rituals[ritualKey].name} complete. +${C.DATA.xpRewards.ritual} XP`, "success");
       } else {
         C.UI.toast("The ritual demands more resources.", "warning");
       }
+      return;
+    }
+
+    const followerDetail = event.target.closest("[data-follower-detail]");
+    if (followerDetail && !event.target.closest("select")) {
+      renderFollowerDetail(followerDetail.dataset.followerDetail);
+      return;
+    }
+
+    const buildingDetail = event.target.closest("[data-building-detail]");
+    if (buildingDetail) {
+      renderBuildingDetail(buildingDetail.dataset.buildingDetail);
       return;
     }
 
@@ -614,6 +728,14 @@
   }
 
   function handleCampChange(event) {
+    if (event.target.id === "sound-toggle") {
+      C.Audio.setEnabled(event.target.checked);
+      return;
+    }
+    if (event.target.id === "sound-volume") {
+      C.Audio.setVolume(Number(event.target.value) / 100);
+      return;
+    }
     const modifier = event.target.closest("[data-defense-modifier]");
     if (modifier) {
       C.MultiplayerService.setDefenseModifier(modifier.dataset.defenseModifier, modifier.checked);
@@ -637,8 +759,9 @@
             <details class="settings-menu">
               <summary aria-label="Open settings">Settings</summary>
               <div class="settings-panel">
-                <strong>Prototype settings</strong>
-                <label><input type="checkbox" disabled> Sound arrives later</label>
+                <strong>Sound settings</strong>
+                <label><input id="sound-toggle" type="checkbox" ${C.store.state.settings.sound ? "checked" : ""}> Sound effects</label>
+                <label class="volume-setting"><span>Volume</span><input id="sound-volume" type="range" min="0" max="100" value="${Math.round(C.store.state.settings.volume * 100)}"></label>
                 <button id="reset-save" class="text-button">Reset local save</button>
               </div>
             </details>
@@ -693,6 +816,24 @@
         return;
       }
       renderActiveTab();
+    },
+
+    showProduction(payload) {
+      if (!rootElement || activeTab !== "overview") return;
+      const map = rootElement.querySelector(".camp-map");
+      if (!map) return;
+      Object.entries(payload)
+        .filter((entry) => entry[1] >= 0.04)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .forEach(([resource, amount], index) => {
+          const gain = document.createElement("span");
+          gain.className = `camp-gain-particle gain-${resource}`;
+          gain.style.setProperty("--gain-x", `${32 + (index * 30)}%`);
+          gain.textContent = `+${amount.toFixed(1)} ${C.DATA.resources[resource].short}`;
+          gain.addEventListener("animationend", () => gain.remove(), { once: true });
+          map.appendChild(gain);
+        });
     }
   };
 })();

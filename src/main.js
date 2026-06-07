@@ -59,16 +59,28 @@
 
   C.store.subscribe((state, reason, payload) => {
     C.UI.updateResourceBar();
+    if ((reason === "audioSettings" || reason === "reset") && C.Audio) C.Audio.refresh();
     if (C.App.currentScreen === "camp") {
       if (reason === "production" && payload) {
         const parts = Object.entries(payload)
           .filter((entry) => entry[1] >= 0.04)
           .map(([resource, amount]) => `+${amount.toFixed(1)} ${C.DATA.resources[resource].short}`);
-        if (parts.length) C.UI.rewardPopup(parts.join("  "));
+        if (parts.length) {
+          C.UI.rewardPopup(parts.join("  "));
+          C.CampScreen.showProduction(payload);
+        }
       }
       C.CampScreen.refresh(reason);
     }
   });
+
+  document.addEventListener("pointerdown", (event) => {
+    if (C.Audio) {
+      C.Audio.unlock();
+      if (event.target.closest("button")) C.Audio.play("tap");
+    }
+  }, { passive: true });
+  document.addEventListener("keydown", () => C.Audio && C.Audio.unlock(), { once: true });
 
   window.setInterval(() => C.store.tick(Date.now()), 250);
   window.addEventListener("beforeunload", () => C.store.save());

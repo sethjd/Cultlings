@@ -211,6 +211,7 @@
           </div>
           <div class="raid-frame">
             <canvas id="raid-canvas" width="360" height="520" aria-label="Top-down action raid"></canvas>
+            <div id="player-damage-flash" class="player-damage-flash" aria-hidden="true"></div>
             <div id="raid-callout" class="raid-callout is-hidden">
               <strong id="callout-title">Room Cleared</strong>
               <span id="callout-copy">The path deeper has opened.</span>
@@ -220,13 +221,24 @@
             <div id="joystick" class="joystick" aria-label="Movement joystick">
               <div id="joystick-stick" class="joystick-stick"></div>
             </div>
-            <button id="attack-button" class="attack-button" aria-label="Attack">
-              <span>Zap</span>
-              <small>Damage ${raidStats.damage}</small>
-            </button>
+            <div class="raid-action-cluster">
+              <button id="special-button" class="ability-button special-button" aria-label="Moon Pulse">
+                <i class="ability-cooldown"></i>
+                <span>Moon</span><small>Pulse</small>
+              </button>
+              <button id="dodge-button" class="ability-button dodge-button" aria-label="Dodge">
+                <i class="ability-cooldown"></i>
+                <span>Dodge</span><small>Shift</small>
+              </button>
+              <button id="attack-button" class="attack-button" aria-label="Attack">
+                <i class="ability-cooldown"></i>
+                <span>Zap</span>
+                <small>Damage ${raidStats.damage}</small>
+              </button>
+            </div>
           </div>
           <button id="room-action" class="button button-primary claim-raid is-hidden">Enter Next Room</button>
-          <p class="desktop-hint">Move with WASD or arrows. Attack with Space or click.</p>
+          <p class="desktop-hint">WASD / arrows move. Click / Space attacks. Shift / right click dodges. E casts Moon Pulse.</p>
         </section>
       `;
 
@@ -235,7 +247,10 @@
       const joystick = root.querySelector("#joystick");
       const stick = root.querySelector("#joystick-stick");
       const attackButton = root.querySelector("#attack-button");
+      const dodgeButton = root.querySelector("#dodge-button");
+      const specialButton = root.querySelector("#special-button");
       const actionButton = root.querySelector("#room-action");
+      const damageFlash = root.querySelector("#player-damage-flash");
       const callout = root.querySelector("#raid-callout");
       const calloutTitle = root.querySelector("#callout-title");
       const calloutCopy = root.querySelector("#callout-copy");
@@ -257,6 +272,10 @@
       let pickups = [];
       const rewards = { devotion: 4, food: 0, wood: 0, bones: 0 };
       const particles = [];
+      const damageNumbers = [];
+      const dodgeGhosts = [];
+      const pulseEffects = [];
+      const raidRecord = { enemiesDefeated: 0, damageTaken: 0 };
       const keys = new Set();
       const joystickVector = { x: 0, y: 0 };
       let joystickPointer = null;
@@ -264,6 +283,9 @@
       let previousTime = performance.now();
       let finished = false;
       let roomCleared = false;
+      let shakeTime = 0;
+      let shakeStrength = 0;
+      let ghostCooldown = 0;
 
       const world = {
         spawnProjectile(x, y, dx, dy) {
@@ -277,6 +299,22 @@
       function updateHealth() {
         healthLabel.textContent = `${player.health}/${player.maxHealth}`;
         healthFill.style.width = `${(player.health / player.maxHealth) * 100}%`;
+      }
+
+      function updateAbilityButtons() {
+        const abilities = [
+          [attackButton, player.attackCooldown, player.attackCooldownMax],
+          [dodgeButton, player.dodgeCooldown, player.dodgeCooldownMax],
+          [specialButton, player.specialCooldown, player.specialCooldownMax]
+        ];
+        abilities.forEach(([button, remaining, maximum]) => {
+          const ratio = C.Helpers.clamp(remaining / maximum, 0, 1);
+          button.style.setProperty("--cooldown-angle", `${ratio * 360}deg`);
+          button.classList.toggle("is-ready", remaining <= 0);
+          button.setAttribute("aria-label", remaining > 0
+            ? `${button.textContent.trim()} cooldown ${remaining.toFixed(1)} seconds`
+            : button.textContent.trim());
+        });
       }
 
       function updateBossHealth() {
@@ -339,8 +377,9 @@
       }
 
       function addBurst(x, y, color) {
-        for (let i = 0; i < 8; i += 1) {
-          const angle = (Math.PI * 2 * i) / 8;
+        const count = particles.length > 72 ? 4 : 8;
+        for (let i = 0; i < count; i += 1) {
+          const angle = (Math.PI * 2 * i) / count;
           particles.push({
             x,
             y,
@@ -352,8 +391,20 @@
         }
       }
 
+      function addDamageNumber(x, y, value, color) {
+        damageNumbers.push({ x, y, value, color: color || "#fff4d2", life: 0.72 });
+      }
+
+      function defeatEnemy(enemy) {
+        raidRecord.enemiesDefeated += 1;
+        spawnPickup(enemy);
+        addBurst(enemy.x, enemy.y, enemy.isBoss ? "#ff765f" : "#d8c1ee");
+        C.Audio.play("death");
+      }
+
       function performAttack() {
         if (finished || roomCleared || !player.attack()) return;
+        C.Audio.play("attack");
         attackButton.classList.remove("is-attacking");
         void attackButton.offsetWidth;
         attackButton.classList.add("is-attacking");
@@ -363,9 +414,47 @@
           const towardEnemy =
             ((enemy.x - player.x) * player.facingX) + ((enemy.y - player.y) * player.facingY) > -250;
           if (!inRange || !towardEnemy) return true;
-          const died = enemy.hit(player.damage);
+          const died = enemy.hit(player.damage, player.x, player.y, enemy.isBoss ? 55 : 105);
+          addDamageNumber(enemy.x, enemy.y - enemy.radius, player.damage);
+          C.Audio.play("hit");
           addBurst(enemy.x, enemy.y, enemy.isBoss ? "#ff765f" : "#f0a765");
-          if (died) spawnPickup(enemy);
+          if (enemy.isBoss) {
+            shakeTime = 0.13;
+            shakeStrength = 4;
+          }
+          if (died) defeatEnemy(enemy);
+          return !died;
+        });
+        updateStatus();
+      }
+
+      function performDodge() {
+        if (finished || roomCleared || !player.dodge(movementInput())) return;
+        C.Audio.play("dodge");
+        dodgeButton.classList.remove("is-activated");
+        void dodgeButton.offsetWidth;
+        dodgeButton.classList.add("is-activated");
+      }
+
+      function performSpecial() {
+        if (finished || roomCleared || !player.useSpecial()) return;
+        C.Audio.play("special");
+        pulseEffects.push({ x: player.x, y: player.y, radius: 18, life: 0.55 });
+        specialButton.classList.remove("is-activated");
+        void specialButton.offsetWidth;
+        specialButton.classList.add("is-activated");
+        enemies = enemies.filter((enemy) => {
+          if (distance(player, enemy) > 122 + enemy.radius) return true;
+          const damage = player.damage + 1;
+          const died = enemy.hit(damage, player.x, player.y, enemy.isBoss ? 90 : 210);
+          addDamageNumber(enemy.x, enemy.y - enemy.radius, damage, "#d9bdff");
+          addBurst(enemy.x, enemy.y, "#b99cff");
+          C.Audio.play("hit");
+          if (enemy.isBoss) {
+            shakeTime = 0.2;
+            shakeStrength = 6;
+          }
+          if (died) defeatEnemy(enemy);
           return !died;
         });
         updateStatus();
@@ -374,6 +463,7 @@
       function collectPickup(pickup) {
         rewards[pickup.resource] += pickup.amount;
         addBurst(pickup.x, pickup.y, "#b99cff");
+        C.Audio.play("collect");
       }
 
       function finishRaid(outcome) {
@@ -391,12 +481,24 @@
           rewards,
           recruitedFollower,
           roomsCleared: roomNumber - (roomCleared ? 0 : 1),
+          stats: {
+            enemiesDefeated: raidRecord.enemiesDefeated,
+            damageTaken: raidRecord.damageTaken
+          },
           asyncRaid: isAsyncRaid ? { defender: raidPayload.defender } : null
         });
       }
 
       function hurtPlayer(amount, x, y) {
         if (!player.hurt(amount)) return;
+        raidRecord.damageTaken += amount || 1;
+        C.Audio.play("hit");
+        damageFlash.classList.remove("is-flashing");
+        void damageFlash.offsetWidth;
+        damageFlash.classList.add("is-flashing");
+        shakeTime = 0.12;
+        shakeStrength = 3;
+        addDamageNumber(player.x, player.y - 25, `-${amount || 1}`, "#ff8f8f");
         addBurst(x || player.x, y || player.y, "#ec7c7c");
         updateHealth();
         if (player.health <= 0) finishRaid("defeat");
@@ -432,16 +534,31 @@
 
       function update(delta) {
         player.update(delta, movementInput());
+        updateAbilityButtons();
         obstacles.forEach((obstacle) => resolveObstacle(player, obstacle));
+
+        ghostCooldown -= delta;
+        if (player.dodgeTimer > 0 && ghostCooldown <= 0) {
+          dodgeGhosts.push({ x: player.x, y: player.y, life: 0.22 });
+          ghostCooldown = 0.045;
+        }
 
         enemies.forEach((enemy) => {
           enemy.update(delta, player, world);
           obstacles.forEach((obstacle) => resolveObstacle(enemy, obstacle));
           enemy.x = C.Helpers.clamp(enemy.x, enemy.radius, C.DATA.raid.worldWidth - enemy.radius);
           enemy.y = C.Helpers.clamp(enemy.y, 58 + enemy.radius, C.DATA.raid.worldHeight - enemy.radius);
-          if (distance(player, enemy) < player.radius + enemy.radius + 2 && enemy.contactCooldown <= 0) {
-            enemy.contactCooldown = 0.9;
+          const touching = distance(player, enemy) < player.radius + enemy.radius + 4;
+          if (touching && enemy.contactCooldown <= 0 && !enemy.attackQueued) {
+            enemy.attackQueued = true;
+            enemy.attackWarning = enemy.isBoss ? 0.34 : 0.22;
+          } else if (touching && enemy.attackQueued && enemy.attackWarning <= 0) {
+            enemy.attackQueued = false;
+            enemy.contactCooldown = enemy.isBoss ? 1.15 : 0.9;
             hurtPlayer(enemy.damage, player.x, player.y);
+          } else if (!touching && enemy.attackQueued) {
+            enemy.attackQueued = false;
+            enemy.attackWarning = 0;
           }
         });
 
@@ -483,16 +600,91 @@
         for (let i = particles.length - 1; i >= 0; i -= 1) {
           if (particles[i].life <= 0) particles.splice(i, 1);
         }
+        damageNumbers.forEach((number) => {
+          number.y -= 28 * delta;
+          number.life -= delta;
+        });
+        for (let i = damageNumbers.length - 1; i >= 0; i -= 1) {
+          if (damageNumbers[i].life <= 0) damageNumbers.splice(i, 1);
+        }
+        dodgeGhosts.forEach((ghost) => {
+          ghost.life -= delta;
+        });
+        for (let i = dodgeGhosts.length - 1; i >= 0; i -= 1) {
+          if (dodgeGhosts[i].life <= 0) dodgeGhosts.splice(i, 1);
+        }
+        pulseEffects.forEach((pulse) => {
+          pulse.radius += 230 * delta;
+          pulse.life -= delta;
+        });
+        for (let i = pulseEffects.length - 1; i >= 0; i -= 1) {
+          if (pulseEffects[i].life <= 0) pulseEffects.splice(i, 1);
+        }
+        shakeTime = Math.max(0, shakeTime - delta);
 
         if (!roomCleared && enemies.length === 0) clearRoom();
       }
 
+      function drawEnemyFeedback(enemy) {
+        if (enemy.spawnTimer > 0) {
+          ctx.strokeStyle = `rgba(185, 156, 255, ${enemy.spawnTimer * 1.5})`;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(enemy.x, enemy.y, enemy.radius + (enemy.spawnTimer * 45), 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (enemy.attackWarning > 0) {
+          ctx.fillStyle = `rgba(255, 103, 82, ${0.15 + Math.sin(enemy.attackWarning * 70) * 0.1})`;
+          ctx.beginPath();
+          ctx.arc(enemy.x, enemy.y, enemy.radius + 8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        const width = enemy.isBoss ? 58 : 34;
+        const y = enemy.y - enemy.radius - (enemy.isBoss ? 37 : 20);
+        ctx.fillStyle = "rgba(11, 9, 20, .8)";
+        ctx.fillRect(enemy.x - (width / 2), y, width, 5);
+        ctx.fillStyle = enemy.isBoss ? "#ff765f" : "#e58a78";
+        ctx.fillRect(enemy.x - (width / 2), y, width * C.Helpers.clamp(enemy.health / enemy.maxHealth, 0, 1), 5);
+      }
+
       function draw(time) {
+        ctx.save();
+        if (shakeTime > 0) {
+          ctx.translate((Math.random() - 0.5) * shakeStrength, (Math.random() - 0.5) * shakeStrength);
+        }
         drawRoom(ctx, time, currentRoom.layout, obstacles);
+        ctx.strokeStyle = "rgba(217, 189, 255, .16)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 7]);
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.radius + 48, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
         dangerZones.forEach((zone) => zone.draw(ctx));
         pickups.forEach((pickup) => pickup.draw(ctx, time));
         projectiles.forEach((projectile) => projectile.draw(ctx, time));
-        enemies.forEach((enemy) => enemy.draw(ctx, time));
+        dodgeGhosts.forEach((ghost) => {
+          ctx.globalAlpha = Math.max(0, ghost.life / 0.5);
+          ctx.fillStyle = "#9d7be0";
+          ctx.beginPath();
+          ctx.ellipse(ghost.x, ghost.y, 15, 20, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        });
+        pulseEffects.forEach((pulse) => {
+          ctx.strokeStyle = `rgba(201, 167, 255, ${Math.max(0, pulse.life * 1.7)})`;
+          ctx.lineWidth = 9 * Math.max(0.2, pulse.life);
+          ctx.beginPath();
+          ctx.arc(pulse.x, pulse.y, pulse.radius, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+        enemies.forEach((enemy) => {
+          ctx.save();
+          if (enemy.spawnTimer > 0) ctx.globalAlpha = 1 - (enemy.spawnTimer / 0.55);
+          enemy.draw(ctx, time);
+          ctx.restore();
+          drawEnemyFeedback(enemy);
+        });
         player.draw(ctx, time);
 
         particles.forEach((particle) => {
@@ -503,10 +695,23 @@
           ctx.fill();
           ctx.globalAlpha = 1;
         });
+        damageNumbers.forEach((number) => {
+          ctx.globalAlpha = Math.min(1, number.life * 2);
+          ctx.fillStyle = number.color;
+          ctx.strokeStyle = "rgba(22, 15, 31, .9)";
+          ctx.lineWidth = 3;
+          ctx.font = "900 16px system-ui";
+          ctx.textAlign = "center";
+          ctx.strokeText(String(number.value), number.x, number.y);
+          ctx.fillText(String(number.value), number.x, number.y);
+          ctx.globalAlpha = 1;
+        });
 
         ctx.fillStyle = "#b69be0";
         ctx.font = "700 11px system-ui";
+        ctx.textAlign = "left";
         ctx.fillText(`LOOT  D ${rewards.devotion}  F ${rewards.food}  W ${rewards.wood}  B ${rewards.bones}`, 12, 30);
+        ctx.restore();
       }
 
       function frame(time) {
@@ -522,11 +727,13 @@
 
       function onKeyDown(event) {
         const key = event.key.toLowerCase();
-        if (["arrowleft", "arrowright", "arrowup", "arrowdown", "w", "a", "s", "d", " "].includes(key)) {
+        if (["arrowleft", "arrowright", "arrowup", "arrowdown", "w", "a", "s", "d", " ", "shift", "e"].includes(key)) {
           event.preventDefault();
         }
         keys.add(key);
-        if (key === " ") performAttack();
+        if (key === " " && !event.repeat) performAttack();
+        if (key === "shift" && !event.repeat) performDodge();
+        if (key === "e" && !event.repeat) performSpecial();
       }
 
       function onKeyUp(event) {
@@ -573,6 +780,16 @@
         else finishRaid("victory");
       }
 
+      function onCanvasPointer(event) {
+        event.preventDefault();
+        if (event.button === 2) performDodge();
+        else performAttack();
+      }
+
+      function preventContextMenu(event) {
+        event.preventDefault();
+      }
+
       window.addEventListener("keydown", onKeyDown);
       window.addEventListener("keyup", onKeyUp);
       joystick.addEventListener("pointerdown", onJoystickDown);
@@ -580,7 +797,10 @@
       joystick.addEventListener("pointerup", onJoystickUp);
       joystick.addEventListener("pointercancel", onJoystickUp);
       attackButton.addEventListener("pointerdown", performAttack);
-      canvas.addEventListener("pointerdown", performAttack);
+      dodgeButton.addEventListener("pointerdown", performDodge);
+      specialButton.addEventListener("pointerdown", performSpecial);
+      canvas.addEventListener("pointerdown", onCanvasPointer);
+      canvas.addEventListener("contextmenu", preventContextMenu);
       actionButton.addEventListener("click", onRoomAction);
 
       setupRoom(1);
@@ -597,7 +817,10 @@
         joystick.removeEventListener("pointerup", onJoystickUp);
         joystick.removeEventListener("pointercancel", onJoystickUp);
         attackButton.removeEventListener("pointerdown", performAttack);
-        canvas.removeEventListener("pointerdown", performAttack);
+        dodgeButton.removeEventListener("pointerdown", performDodge);
+        specialButton.removeEventListener("pointerdown", performSpecial);
+        canvas.removeEventListener("pointerdown", onCanvasPointer);
+        canvas.removeEventListener("contextmenu", preventContextMenu);
         actionButton.removeEventListener("click", onRoomAction);
       };
     }

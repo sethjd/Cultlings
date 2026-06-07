@@ -19,8 +19,15 @@
       this.health = this.maxHealth;
       this.damage = stats.damage;
       this.attackCooldown = 0;
+      this.attackCooldownMax = 0.4;
       this.attackFlash = 0;
       this.hurtFlash = 0;
+      this.dodgeCooldown = 0;
+      this.dodgeCooldownMax = 2.25;
+      this.dodgeTimer = 0;
+      this.dodgeDirection = { x: 0, y: -1 };
+      this.specialCooldown = 0;
+      this.specialCooldownMax = 9;
       this.facingX = 0;
       this.facingY = -1;
     }
@@ -29,9 +36,15 @@
       this.attackCooldown = Math.max(0, this.attackCooldown - delta);
       this.attackFlash = Math.max(0, this.attackFlash - delta);
       this.hurtFlash = Math.max(0, this.hurtFlash - delta);
+      this.dodgeCooldown = Math.max(0, this.dodgeCooldown - delta);
+      this.specialCooldown = Math.max(0, this.specialCooldown - delta);
+      this.dodgeTimer = Math.max(0, this.dodgeTimer - delta);
 
       const length = Math.hypot(movement.x, movement.y);
-      if (length > 0.05) {
+      if (this.dodgeTimer > 0) {
+        this.x += this.dodgeDirection.x * 430 * delta;
+        this.y += this.dodgeDirection.y * 430 * delta;
+      } else if (length > 0.05) {
         const nx = movement.x / Math.max(1, length);
         const ny = movement.y / Math.max(1, length);
         this.x += nx * this.speed * delta;
@@ -46,13 +59,33 @@
 
     attack() {
       if (this.attackCooldown > 0) return false;
-      this.attackCooldown = 0.4;
+      this.attackCooldown = this.attackCooldownMax;
       this.attackFlash = 0.16;
       return true;
     }
 
+    dodge(movement) {
+      if (this.dodgeCooldown > 0 || this.dodgeTimer > 0) return false;
+      const length = Math.hypot(movement.x, movement.y);
+      const direction = length > 0.05
+        ? { x: movement.x / length, y: movement.y / length }
+        : { x: this.facingX, y: this.facingY };
+      this.dodgeDirection = direction;
+      this.facingX = direction.x;
+      this.facingY = direction.y;
+      this.dodgeTimer = 0.2;
+      this.dodgeCooldown = this.dodgeCooldownMax;
+      return true;
+    }
+
+    useSpecial() {
+      if (this.specialCooldown > 0) return false;
+      this.specialCooldown = this.specialCooldownMax;
+      return true;
+    }
+
     hurt(amount) {
-      if (this.hurtFlash > 0) return false;
+      if (this.hurtFlash > 0 || this.dodgeTimer > 0) return false;
       this.health = Math.max(0, this.health - (amount || 1));
       this.hurtFlash = 0.62;
       return true;
@@ -61,7 +94,9 @@
     draw(ctx, time) {
       const bob = Math.sin(time * 0.006) * 2;
       ctx.save();
+      const breath = 1 + (Math.sin(time * 0.004) * 0.025);
       ctx.translate(this.x, this.y + bob);
+      ctx.scale(breath, 1 / breath);
 
       if (this.attackFlash > 0) {
         ctx.strokeStyle = "rgba(255, 218, 126, .88)";
@@ -109,6 +144,11 @@
       this.name = options.name;
       this.hitFlash = 0;
       this.contactCooldown = 0;
+      this.attackWarning = 0;
+      this.attackQueued = false;
+      this.spawnTimer = 0.36 + (Math.random() * 0.18);
+      this.knockbackX = 0;
+      this.knockbackY = 0;
       this.phase = Math.random() * Math.PI * 2;
       this.isBoss = false;
     }
@@ -124,11 +164,25 @@
     updateTimers(delta) {
       this.hitFlash = Math.max(0, this.hitFlash - delta);
       this.contactCooldown = Math.max(0, this.contactCooldown - delta);
+      this.attackWarning = Math.max(0, this.attackWarning - delta);
+      this.spawnTimer = Math.max(0, this.spawnTimer - delta);
+      this.x += this.knockbackX * delta;
+      this.y += this.knockbackY * delta;
+      const damping = Math.pow(0.025, delta);
+      this.knockbackX *= damping;
+      this.knockbackY *= damping;
     }
 
-    hit(amount) {
+    hit(amount, sourceX, sourceY, force) {
       this.health -= amount || 1;
       this.hitFlash = 0.15;
+      if (Number.isFinite(sourceX) && Number.isFinite(sourceY)) {
+        const dx = this.x - sourceX;
+        const dy = this.y - sourceY;
+        const length = Math.max(1, Math.hypot(dx, dy));
+        this.knockbackX += (dx / length) * (force || 95);
+        this.knockbackY += (dy / length) * (force || 95);
+      }
       return this.health <= 0;
     }
   }

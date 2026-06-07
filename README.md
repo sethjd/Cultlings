@@ -171,9 +171,32 @@ Client-generated multiplayer is still not cheat-proof. A production economy shou
 - random camp choice events
 - three-room single-player raids
 - Candle Goblins, Bone Beetles, Hex Wisps, and the Wax-Head Brute
-- mobile joystick, keyboard controls, player health, and boss health
+- fixed mobile joystick with large attack, dodge, and Moon Pulse buttons
+- responsive attacks, knockback, hit flashes, damage numbers, health bars, and warning effects
+- dodge invulnerability, cooldown displays, boss-hit shake, and lightweight canvas particles
+- detailed raid reports with rewards, combat stats, relics, recruits, and performance ratings
+- tappable camp followers and buildings, upgrade badges, working animations, and resource popups
+- generated placeholder sound effects with saved mute and volume settings
 - PWA caching and offline loading
 - optional asynchronous multiplayer foundation
+
+## Controls
+
+### Mobile
+
+- Left virtual joystick: move
+- **Zap**: attack
+- **Dodge**: short invulnerable dash
+- **Moon Pulse**: circular damage and knockback blast
+
+The raid controls stay fixed at the bottom of the screen and disable browser pan/zoom gestures over the play area.
+
+### Desktop
+
+- `WASD` or arrow keys: move
+- Left click or `Space`: attack
+- Right click or `Shift`: dodge
+- `E`: Moon Pulse
 
 ## Known Next Steps
 
@@ -183,4 +206,4 @@ Client-generated multiplayer is still not cheat-proof. A production economy shou
 - Add inbox pagination and result expiry
 - Add App Check and rate limiting
 - Add weapons, more defenses, rituals, traits, events, and bosses
-- Add sound, tutorial prompts, and accessibility settings
+- Add music, tutorial prompts, remappable controls, and expanded accessibility settings

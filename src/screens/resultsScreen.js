@@ -45,6 +45,14 @@
     `;
   }
 
+  function raidRating(result) {
+    if (result.outcome !== "victory") return "Cursed";
+    const damageTaken = result.stats ? result.stats.damageTaken : 0;
+    if (damageTaken === 0) return "Moon-Blessed";
+    if (damageTaken <= 2) return "Glorious";
+    return "Grim";
+  }
+
   C.ResultsScreen = {
     render(root, result) {
       const victory = result.outcome === "victory";
@@ -52,10 +60,12 @@
       const defenderName = asyncRaid
         ? C.UI.escapeHtml(result.asyncRaid.defender.displayName || "Unknown Cult")
         : "";
+      const stats = result.stats || { enemiesDefeated: 0, damageTaken: 0 };
+      const rating = raidRating(result);
       const rewardCards = Object.entries(result.rewards).map(([resource, amount]) => `
         <div class="reward-card reward-${resource}">
           <span class="resource-icon ${resource === "devotion" ? "devotion-icon" : `${resource}-icon`}"></span>
-          <strong>+${Math.floor(amount)}</strong>
+          <strong data-count-to="${Math.floor(amount)}">+0</strong>
           <small>${C.DATA.resources[resource].label}</small>
         </div>
       `).join("");
@@ -77,12 +87,23 @@
               : `${result.roomsCleared || 0} room${result.roomsCleared === 1 ? "" : "s"} cleared before a dignified retreat.`}
           </p>
 
+          <div class="result-rating rating-${rating.toLowerCase()}">
+            <span>Raid Rating</span>
+            <strong>${rating}</strong>
+          </div>
+
+          <div class="result-stat-grid">
+            <div><span>Enemies defeated</span><strong data-count-to="${stats.enemiesDefeated || 0}">0</strong></div>
+            <div><span>Damage taken</span><strong data-count-to="${stats.damageTaken || 0}">0</strong></div>
+            <div><span>Rooms cleared</span><strong data-count-to="${result.roomsCleared || 0}">0</strong></div>
+          </div>
+
           <div class="reward-grid">${rewardCards}</div>
 
           ${victory ? `
             <div class="xp-result">
               <span>Godling XP</span>
-              <strong>+${result.xp}</strong>
+              <strong data-count-to="${result.xp || 0}">+0</strong>
               ${result.ranksGained ? `<small>Rank up! Godling Rank ${C.store.getRank()} reached.</small>` : ""}
             </div>
           ` : ""}
@@ -109,7 +130,27 @@
       const returnButton = root.querySelector("#return-camp");
       const returnToCamp = () => C.App.show("camp");
       returnButton.addEventListener("click", returnToCamp);
-      return () => returnButton.removeEventListener("click", returnToCamp);
+      C.Audio.play(victory ? "victory" : "defeat");
+
+      const countElements = [...root.querySelectorAll("[data-count-to]")];
+      const start = performance.now();
+      let countFrame = null;
+      function animateCounts(time) {
+        const progress = C.Helpers.clamp((time - start) / 720, 0, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        countElements.forEach((element) => {
+          const target = Number(element.dataset.countTo) || 0;
+          const prefix = element.closest(".reward-card, .xp-result") ? "+" : "";
+          element.textContent = `${prefix}${Math.round(target * eased)}`;
+        });
+        if (progress < 1) countFrame = requestAnimationFrame(animateCounts);
+      }
+      countFrame = requestAnimationFrame(animateCounts);
+
+      return () => {
+        returnButton.removeEventListener("click", returnToCamp);
+        cancelAnimationFrame(countFrame);
+      };
     }
   };
 })();

@@ -40,7 +40,7 @@
         lastPublishedAt: 0
       },
       tutorialCompleted: false,
-      settings: { sound: true, reducedMotion: false },
+      settings: { sound: true, volume: 0.55, reducedMotion: false },
       lastSavedAt: Date.now(),
       lastTickAt: Date.now()
     };
@@ -115,6 +115,18 @@
       this.state.multiplayer.displayName = displayName;
       this.save();
       this.notify("displayName", { displayName });
+    }
+
+    setSoundEnabled(enabled) {
+      this.state.settings.sound = Boolean(enabled);
+      this.save();
+      this.notify("audioSettings", { sound: this.state.settings.sound });
+    }
+
+    setVolume(volume) {
+      this.state.settings.volume = C.Helpers.clamp(Number(volume) || 0, 0, 1);
+      this.save();
+      this.notify("audioSettings", { volume: this.state.settings.volume });
     }
 
     exportCloudSave() {
