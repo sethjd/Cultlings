@@ -8,6 +8,7 @@
           <div class="title-stars" aria-hidden="true"></div>
           <div class="title-moon" aria-hidden="true"></div>
           <div class="godling title-godling" aria-hidden="true">
+            <img class="title-godling-asset" src="${C.UI.asset("characters/player-base.svg")}" alt="">
             <span class="godling-horn horn-left"></span>
             <span class="godling-horn horn-right"></span>
             <span class="godling-face">

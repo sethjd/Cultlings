@@ -116,7 +116,13 @@
         lastPublishedAt: 0
       },
       tutorialCompleted: false,
-      settings: { sound: true, volume: 0.55, reducedMotion: false },
+      settings: {
+        sound: true,
+        volume: 0.55,
+        reducedMotion: false,
+        largeText: false,
+        highContrast: false
+      },
       lastSavedAt: Date.now(),
       lastTickAt: Date.now()
     };
@@ -272,6 +278,14 @@
       this.state.settings.volume = C.Helpers.clamp(Number(volume) || 0, 0, 1);
       this.save();
       this.notify("audioSettings", { volume: this.state.settings.volume });
+    }
+
+    setVisualSetting(setting, enabled) {
+      if (!["reducedMotion", "largeText", "highContrast"].includes(setting)) return false;
+      this.state.settings[setting] = Boolean(enabled);
+      this.save();
+      this.notify("visualSettings", { setting, enabled: this.state.settings[setting] });
+      return true;
     }
 
     getLocalDateKey(date) {

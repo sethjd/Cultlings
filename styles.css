@@ -1,19 +1,18 @@
 :root {
-  color-scheme: dark;
-  --ink: #f5ecdf;
-  --muted: #ad9fba;
-  --night: #100d1f;
-  --night-2: #171329;
-  --panel: #211a35;
-  --panel-light: #2b2243;
-  --purple: #8063c5;
-  --purple-light: #b99cff;
-  --orange: #f3a65a;
-  --gold: #ffd478;
-  --red: #e87979;
-  --green: #7fc4a4;
-  --outline: rgba(255, 255, 255, 0.09);
-  --shadow: 0 16px 40px rgba(4, 3, 11, 0.35);
+  --ink: var(--color-text);
+  --muted: var(--color-text-muted);
+  --night: var(--color-night);
+  --night-2: var(--color-night-raised);
+  --panel: var(--color-panel);
+  --panel-light: var(--color-panel-raised);
+  --purple: var(--color-moon);
+  --purple-light: var(--color-moon-pale);
+  --orange: var(--color-candle);
+  --gold: var(--color-gold);
+  --red: var(--color-danger);
+  --green: var(--color-mushroom);
+  --outline: var(--color-outline);
+  --shadow: var(--shadow-panel);
   font-family: Inter, ui-rounded, "Arial Rounded MT Bold", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-synthesis: none;
 }
@@ -4198,6 +4197,557 @@ strong {
   color: #eadfff;
   background: #49345f;
   font-size: 0.66rem;
+}
+
+/* Original SVG asset system and unified visual pass */
+
+.resource-icon {
+  flex-basis: 18px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  box-shadow: none;
+  transform: none;
+}
+
+.resource-icon::before,
+.resource-icon::after {
+  display: none;
+}
+
+.devotion-icon { background-image: var(--asset-resource-devotion); }
+.food-icon { background-image: var(--asset-resource-food); }
+.wood-icon { background-image: var(--asset-resource-wood); }
+.bone-icon,
+.bones-icon { background-image: var(--asset-resource-bones); }
+
+.resource-bar {
+  z-index: var(--layer-sticky);
+  border-bottom-color: var(--color-outline-strong);
+  background: rgba(13, 11, 25, 0.96);
+  box-shadow: 0 6px 22px rgba(4, 3, 11, 0.24);
+}
+
+.resource-pill {
+  min-height: 38px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, #2b2340, #211a32);
+}
+
+.button,
+.camp-tabs button,
+.collection-tabs button,
+.cosmetic-category-tabs button {
+  transition:
+    transform var(--motion-fast) ease,
+    filter var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    background-color var(--motion-fast) ease;
+}
+
+.button:active,
+.camp-tabs button:active,
+.collection-tabs button:active,
+.cosmetic-category-tabs button:active {
+  transform: translateY(3px) scale(0.97);
+}
+
+.button-primary {
+  border: 2px solid #ffe2a0;
+  border-bottom-color: #b96a43;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, var(--color-gold), var(--color-candle));
+  box-shadow: var(--shadow-button), var(--shadow-glow-gold);
+}
+
+.button-secondary {
+  border: 2px solid #a98bdd;
+  border-bottom-color: #4a356e;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #8668c6, #604791);
+}
+
+.title-godling-asset {
+  position: absolute;
+  z-index: 5;
+  inset: -8px -6px -5px;
+  width: calc(100% + 12px);
+  height: calc(100% + 13px);
+  object-fit: contain;
+  filter: drop-shadow(0 14px 10px rgba(5, 3, 12, 0.36));
+  animation: title-godling-breathe var(--motion-ambient) ease-in-out infinite;
+}
+
+.title-godling-asset ~ span {
+  opacity: 0;
+}
+
+@keyframes title-godling-breathe {
+  50% { transform: translateY(-5px) scale(1.025, 0.985); }
+}
+
+.title-screen::after {
+  content: "";
+  position: absolute;
+  right: -18%;
+  bottom: -8%;
+  left: -18%;
+  height: 28%;
+  background: url("assets/svg/biomes/candlewood-decor.svg") center bottom / min(760px, 130%) auto no-repeat;
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+.title-copy,
+.title-screen .button-huge,
+.title-footnote {
+  z-index: 6;
+}
+
+.follower-avatar {
+  overflow: visible;
+  border-color: var(--color-ink-deep);
+  background: color-mix(in srgb, var(--follower-color, var(--color-moon)) 45%, var(--color-panel));
+}
+
+.follower-body-asset {
+  position: absolute;
+  z-index: 4;
+  top: -8px;
+  left: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.follower-hat-asset {
+  position: absolute;
+  z-index: 8;
+  top: -18px;
+  left: 50%;
+  width: 39px;
+  height: 28px;
+  object-fit: contain;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.follower-body-asset ~ .follower-ear,
+.follower-body-asset ~ .follower-eye,
+.follower-hat-asset ~ .follower-hat {
+  opacity: 0;
+}
+
+.follower-card-expanded,
+.upgrade-card,
+.quest-card,
+.collection-entry,
+.cosmetic-card,
+.public-cult-card,
+.inbox-card,
+.raid-stat-card {
+  border-color: var(--color-outline);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.025), transparent 45%),
+    var(--color-panel);
+  box-shadow: 0 6px 0 rgba(13, 11, 25, 0.55);
+}
+
+.follower-card-expanded:hover,
+.upgrade-card:hover,
+.quest-card:hover,
+.collection-entry:hover,
+.cosmetic-card:hover {
+  border-color: rgba(216, 196, 255, 0.25);
+}
+
+.upgrade-card {
+  display: grid;
+  grid-template-columns: 66px minmax(0, 1fr) auto;
+}
+
+.upgrade-asset,
+.building-detail-asset {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  filter: saturate(0.82) drop-shadow(0 8px 6px rgba(4, 3, 11, 0.35));
+}
+
+.upgrade-asset.level-0,
+.building-detail-asset.level-0 {
+  filter: grayscale(0.8) brightness(0.65);
+  opacity: 0.68;
+}
+
+.upgrade-asset.level-3,
+.upgrade-asset.level-4,
+.upgrade-asset.level-5,
+.building-detail-asset.level-3,
+.building-detail-asset.level-4,
+.building-detail-asset.level-5 {
+  filter: saturate(1.15) drop-shadow(0 0 9px rgba(255, 212, 120, 0.3));
+}
+
+.building-detail-asset {
+  width: 112px;
+  height: 92px;
+  margin: -8px auto 6px;
+}
+
+.camp-map {
+  border: 2px solid rgba(216, 196, 255, 0.16);
+  background:
+    radial-gradient(ellipse at 50% 62%, #403b51 0 37%, transparent 38%),
+    linear-gradient(180deg, #14162f 0 42%, #26283c 43% 100%);
+}
+
+.camp-building-asset {
+  position: absolute;
+  z-index: 8;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 9px rgba(4, 3, 11, 0.42));
+}
+
+.shrine-asset {
+  inset: -2px -13px 2px;
+  width: 146px;
+  height: 162px;
+}
+
+.shrine-asset ~ .shrine-moon,
+.shrine-asset ~ .shrine-roof,
+.shrine-asset ~ .shrine-door {
+  opacity: 0;
+}
+
+.hut-asset {
+  left: 6%;
+  bottom: -8px;
+  width: 118px;
+  height: 94px;
+}
+
+.hut-asset ~ .hut {
+  opacity: 0;
+}
+
+.ritual-asset {
+  inset: -22px -20px -16px;
+  width: 165px;
+  height: 105px;
+}
+
+.ritual-asset ~ .ritual-rune,
+.ritual-asset ~ .ritual-candle {
+  opacity: 0;
+}
+
+.camp-building-asset.level-3,
+.camp-building-asset.level-4,
+.camp-building-asset.level-5 {
+  filter: drop-shadow(0 0 12px rgba(255, 212, 120, 0.36)) drop-shadow(0 12px 9px rgba(4, 3, 11, 0.42));
+}
+
+.camp-building-dock {
+  position: absolute;
+  z-index: 7;
+  top: 43%;
+  right: 7px;
+  display: grid;
+  gap: 4px;
+}
+
+.camp-side-building {
+  width: 70px;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 31px 1fr;
+  align-items: center;
+  gap: 2px 4px;
+  padding: 4px;
+  border: 1px solid rgba(232, 223, 196, 0.16);
+  border-radius: var(--radius-sm);
+  color: var(--color-bone);
+  background: rgba(20, 16, 31, 0.88);
+  text-align: left;
+}
+
+.camp-side-building img {
+  grid-row: 1 / 3;
+  width: 31px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.camp-side-building span {
+  overflow: hidden;
+  font-size: 0.48rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.camp-side-building small {
+  color: var(--color-candle);
+  font-size: 0.45rem;
+}
+
+.camp-side-building.is-unbuilt img {
+  filter: grayscale(1);
+  opacity: 0.46;
+}
+
+.camp-banner,
+.profile-banner {
+  border: 0;
+  background: none;
+}
+
+.camp-banner img,
+.profile-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 7px 5px rgba(4, 3, 11, 0.4));
+}
+
+.camp-banner:has(img)::before,
+.profile-banner:has(img)::before {
+  display: none;
+}
+
+.camp-sigil-asset {
+  position: absolute;
+  z-index: 2;
+  bottom: 8%;
+  left: 50%;
+  width: 175px;
+  height: 94px;
+  opacity: 0.46;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.camp-map:has(.camp-sigil-asset)::before {
+  display: none;
+}
+
+.camp-follower-dot {
+  overflow: visible;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.camp-follower-dot img {
+  width: 34px;
+  height: 39px;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 4px rgba(4, 3, 11, 0.35));
+}
+
+.camp-follower-dot:has(img)::before,
+.camp-follower-dot:has(img)::after {
+  display: none;
+}
+
+.collection-icon {
+  overflow: hidden;
+  border: 1px solid rgba(216, 196, 255, 0.12);
+}
+
+.collection-icon img {
+  width: 100%;
+  height: 48px;
+  object-fit: contain;
+}
+
+.cosmetic-preview img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.profile-godling-base {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.profile-mask-asset {
+  position: absolute;
+  z-index: 6;
+  top: 27px;
+  left: 17px;
+  width: 52px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.profile-godling-base ~ .profile-horn,
+.profile-godling-base ~ span {
+  opacity: 0;
+}
+
+.result-sigil img {
+  width: 84px;
+  height: 84px;
+  animation: reward-sigil-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes reward-sigil-pulse {
+  50% { transform: scale(1.06); filter: brightness(1.12); }
+}
+
+.tab-icon {
+  position: relative;
+  width: 22px;
+  height: 20px;
+  display: block;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+}
+
+.tab-icon::before,
+.tab-icon::after {
+  content: "";
+  position: absolute;
+}
+
+.tab-camp::before { inset: 4px; border-radius: 50%; background: var(--color-gold); }
+.tab-followers::before { left: 3px; bottom: 3px; width: 7px; height: 10px; border-radius: 50%; background: var(--color-moon-pale); box-shadow: 7px 0 var(--color-moon-pale); }
+.tab-raid::before { top: 2px; left: 8px; width: 3px; height: 9px; background: var(--color-candle); box-shadow: 0 11px var(--color-candle); }
+.tab-multiplayer::before { top: 7px; left: 3px; width: 12px; height: 3px; background: var(--color-mushroom); }
+.tab-multiplayer::after { top: 3px; left: 7px; width: 3px; height: 12px; background: var(--color-mushroom); }
+.tab-quests::before { inset: 4px; border: 2px dotted var(--color-gold); border-radius: 50%; }
+.tab-collection::before { top: 4px; left: 4px; width: 11px; height: 10px; border: 2px solid var(--color-bone); border-radius: 2px; }
+.tab-profile::before { top: 3px; left: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--color-moon-pale); box-shadow: 0 8px 0 3px var(--color-moon); }
+
+.camp-tabs button.is-active .tab-icon {
+  color: #2a1c31;
+  border-color: #2a1c31;
+}
+
+.raid-frame {
+  border: 2px solid color-mix(in srgb, var(--biome-accent, var(--color-candle)) 50%, #302641);
+  box-shadow: 0 14px 34px rgba(4, 3, 11, 0.4), inset 0 0 0 2px rgba(255, 255, 255, 0.03);
+}
+
+.boss-health:not(.is-hidden) {
+  animation: boss-bar-intro 720ms ease-out both;
+}
+
+@keyframes boss-bar-intro {
+  0% { opacity: 0; transform: scale(0.86); }
+  65% { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.raid-pause-panel,
+.raid-map-panel,
+.room-event-panel,
+.blessing-choice-panel {
+  background:
+    url("assets/svg/ui/panel-corner.svg") 8px 8px / 54px 54px no-repeat,
+    rgba(30, 23, 42, 0.97);
+}
+
+.large-text {
+  font-size: 112.5%;
+}
+
+.large-text .resource-pill,
+.large-text .camp-tabs button span {
+  font-size: 0.72rem;
+}
+
+.large-text .settings-panel {
+  width: 238px;
+}
+
+.high-contrast {
+  --color-text: #fffaf0;
+  --color-text-muted: #d9cfdf;
+  --color-outline: rgba(255, 255, 255, 0.26);
+  --color-outline-strong: rgba(255, 255, 255, 0.48);
+}
+
+.high-contrast body {
+  background: #080711;
+}
+
+.high-contrast .app-shell,
+.high-contrast .camp-screen {
+  background-color: #11101f;
+}
+
+.high-contrast .button:disabled {
+  opacity: 0.72;
+  outline: 2px dashed #aaa1ad;
+}
+
+.high-contrast .muted,
+.high-contrast small,
+.high-contrast .tab-help {
+  color: #d4c9da;
+}
+
+.reduced-motion *,
+.reduced-motion *::before,
+.reduced-motion *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .upgrade-card {
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
+  .upgrade-asset {
+    width: 52px;
+    height: 56px;
+  }
+
+  .upgrade-card .button-small,
+  .upgrade-card .rank-lock {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .camp-side-building {
+    width: 62px;
+    grid-template-columns: 27px 1fr;
+  }
+
+  .camp-side-building img {
+    width: 27px;
+  }
 }
 
 /* Camp interaction polish */

@@ -2,6 +2,75 @@
   const C = window.Cultlings = window.Cultlings || {};
 
   C.UI = {
+    asset(path) {
+      return `assets/svg/${path}`;
+    },
+
+    followerAsset(index) {
+      const variants = ["round", "long", "wide", "pointy", "tuft"];
+      return C.UI.asset(`characters/follower-${variants[Math.abs(Number(index) || 0) % variants.length]}.svg`);
+    },
+
+    buildingAsset(buildingKey) {
+      const files = {
+        shrine: "shrine",
+        huts: "hut",
+        ritual: "ritual-circle",
+        kitchen: "kitchen",
+        training: "training-pit",
+        vault: "relic-vault"
+      };
+      return C.UI.asset(`buildings/${files[buildingKey] || "hut"}.svg`);
+    },
+
+    cosmeticAsset(cosmeticId) {
+      const files = {
+        maskBareMoon: "mask-bare-moon",
+        maskWaxSmile: "mask-wax-smile",
+        maskBoneVisor: "mask-bone-visor",
+        maskMushroom: "mask-mushroom",
+        maskStarVeil: "mask-star-veil",
+        hatSoftCap: "hat-soft-cap",
+        hatCandle: "hat-candle",
+        hatMushroom: "hat-mushroom",
+        hatBoneBow: "hat-bone-bow",
+        hatTwigCrown: "hat-twig-crown",
+        bannerLittleMoon: "banner-little-moon",
+        bannerCandleTeeth: "banner-candle-teeth",
+        bannerSoftSkull: "banner-soft-skull",
+        sigilCrookedMoon: "sigil-crooked-moon",
+        sigilTeeth: "sigil-teeth",
+        sigilMushroomRing: "sigil-mushroom-ring"
+      };
+      return files[cosmeticId] ? C.UI.asset(`cosmetics/${files[cosmeticId]}.svg`) : "";
+    },
+
+    enemyAsset(enemyId) {
+      const files = {
+        candleGoblin: "candle-goblin",
+        boneBeetle: "bone-beetle",
+        hexWisp: "hex-wisp",
+        sporeImp: "spore-imp",
+        bogSkull: "bog-skull",
+        graveCandle: "grave-candle",
+        bellWraith: "bell-wraith",
+        rootGrasper: "root-grasper",
+        tinyHeretic: "tiny-heretic",
+        waxBrute: "wax-head-brute",
+        wetProphet: "big-wet-prophet",
+        hollowbell: "saint-hollowbell"
+      };
+      return files[enemyId] ? C.UI.asset(`enemies/${files[enemyId]}.svg`) : "";
+    },
+
+    applyPreferences() {
+      if (!C.store) return;
+      const settings = C.store.state.settings;
+      document.documentElement.classList.toggle("reduced-motion", Boolean(settings.reducedMotion));
+      document.documentElement.classList.toggle("large-text", Boolean(settings.largeText));
+      document.documentElement.classList.toggle("high-contrast", Boolean(settings.highContrast));
+    },
+
     escapeHtml(value) {
       return String(value == null ? "" : value)
         .replace(/&/g, "&amp;")
@@ -50,7 +119,10 @@
     costMarkup(cost) {
       const labels = { devotion: "D", food: "F", wood: "W", bones: "B", mood: "Mood" };
       return Object.entries(cost)
-        .map(([resource, amount]) => `<span class="mini-cost mini-${resource}">${labels[resource]} ${amount}</span>`)
+        .map(([resource, amount]) => `<span class="mini-cost mini-${resource}">
+          ${resource === "mood" ? "" : `<i class="resource-icon ${resource === "devotion" ? "devotion-icon" : resource === "bones" ? "bones-icon" : `${resource}-icon`}"></i>`}
+          ${labels[resource]} ${amount}
+        </span>`)
         .join("");
     }
   };

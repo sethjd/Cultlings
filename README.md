@@ -4,6 +4,52 @@ Cultlings is a mobile-first cute-dark browser game prototype. You play a tiny fa
 
 Everything is original and drawn with CSS, SVG, or the HTML canvas. The base game has no build step and remains fully playable offline.
 
+## Art Direction
+
+Cultlings uses an original cute-but-cursed dark-fairytale style:
+
+- chunky rounded shapes
+- big heads and tiny bodies
+- candlelight orange and ritual gold
+- moonlight purple and dark navy backgrounds
+- bone-white details and mushroom greens
+- funny occult objects without realistic horror or gore
+
+The complete visual rules, palette, silhouette guidance, animation limits, and avoidance list live in [docs/ART_BIBLE.md](docs/ART_BIBLE.md).
+
+The art direction deliberately avoids copying characters, costumes, layouts, or UI from other games.
+
+## Asset Structure
+
+Reusable original assets are grouped by purpose:
+
+```text
+assets/
+  audio/generated/
+  svg/
+    biomes/
+    buildings/
+    characters/
+    cosmetics/
+    enemies/
+    resources/
+    ui/
+src/styles/tokens.css
+```
+
+`src/styles/tokens.css` contains shared colours, spacing, radii, shadows, type sizes, layer values, motion durations, and resource asset paths.
+
+### Adding an SVG
+
+1. Start with a `64 x 64` viewBox when practical.
+2. Use a thick dark silhouette and no more than four fill colours.
+3. Keep important details visible at 32-48 CSS pixels.
+4. Do not embed scripts, fonts, raster images, filters, or external files.
+5. Place the asset in the matching `assets/svg` folder.
+6. Reference it through `C.UI.asset()` or the relevant shared asset helper.
+7. Add it to `APP_FILES` in `service-worker.js` for first-load offline support.
+8. Retain a simple CSS or canvas fallback for important gameplay information.
+
 ## Run Locally
 
 `index.html` can be opened directly for basic offline play. PWA caching and Firebase require a local web server:
@@ -292,6 +338,27 @@ The raid controls stay fixed at the bottom of the screen and disable browser pan
 - Right click or `Shift`: dodge
 - `E`: Moon Pulse
 - `Escape`: pause or resume
+
+## Accessibility
+
+The camp Settings menu stores these options locally:
+
+- **Reduced motion** removes ambient loops and shortens transitions.
+- **Larger text** increases the global type scale while preserving portrait layouts.
+- **High contrast** strengthens text, borders, focus states, and disabled controls.
+
+Resource icons use different silhouettes as well as colours: devotion is a crescent droplet, food is a mushroom-berry, cursed wood is forked, and bone shards cross each other.
+
+The game also respects the operating system's `prefers-reduced-motion` setting.
+
+## Visual Performance
+
+- Presentation assets are small external SVG files rather than large inline templates.
+- Active combat remains canvas-rendered to avoid large DOM trees.
+- Animation primarily uses `transform` and `opacity`.
+- Ambient animation counts are intentionally limited.
+- SVGs avoid expensive filters and embedded textures.
+- The service worker caches the asset library for fast repeat and offline loading.
 
 ## Roguelite Raids
 

@@ -1,0 +1,66 @@
+:root {
+  color-scheme: dark;
+
+  --color-ink-deep: #0d0b19;
+  --color-night: #101020;
+  --color-night-raised: #17162c;
+  --color-panel: #241d36;
+  --color-panel-raised: #342849;
+  --color-panel-soft: #2b2340;
+  --color-moon: #9b7adc;
+  --color-moon-pale: #d8c4ff;
+  --color-candle: #f2a35c;
+  --color-gold: #ffd478;
+  --color-danger: #dd746f;
+  --color-mushroom: #82be91;
+  --color-bog: #527b6a;
+  --color-bone: #e8dfc4;
+  --color-text: #f5ecdf;
+  --color-text-muted: #b7a9c1;
+  --color-outline: rgba(255, 255, 255, 0.1);
+  --color-outline-strong: rgba(232, 223, 196, 0.24);
+
+  --shadow-panel: 0 14px 34px rgba(4, 3, 11, 0.34);
+  --shadow-button: 0 5px 0 #17101f;
+  --shadow-glow-gold: 0 0 18px rgba(255, 212, 120, 0.28);
+  --shadow-glow-moon: 0 0 18px rgba(155, 122, 220, 0.28);
+
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  --font-xs: 0.58rem;
+  --font-sm: 0.68rem;
+  --font-md: 0.82rem;
+  --font-lg: 1rem;
+  --font-xl: 1.35rem;
+  --font-display: clamp(2.3rem, 12vw, 4.4rem);
+
+  --layer-base: 0;
+  --layer-card: 10;
+  --layer-menu: 30;
+  --layer-sticky: 50;
+  --layer-modal: 90;
+  --layer-toast: 100;
+
+  --motion-fast: 120ms;
+  --motion-normal: 180ms;
+  --motion-slow: 360ms;
+  --motion-ambient: 2200ms;
+
+  --asset-resource-devotion: url("../../assets/svg/resources/devotion.svg");
+  --asset-resource-food: url("../../assets/svg/resources/food.svg");
+  --asset-resource-wood: url("../../assets/svg/resources/cursed-wood.svg");
+  --asset-resource-bones: url("../../assets/svg/resources/bone-shards.svg");
+}
+

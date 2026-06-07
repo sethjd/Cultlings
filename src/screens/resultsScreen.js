@@ -13,6 +13,7 @@
     return `
       <div class="recruit-card">
         <div class="follower-avatar" style="--follower-color:${result.follower.color}">
+          <img class="follower-body-asset" src="${C.UI.followerAsset(C.store.state.followers.length - 1)}" alt="">
           <i class="follower-ear ear-left"></i><i class="follower-ear ear-right"></i>
           <i class="follower-eye eye-left"></i><i class="follower-eye eye-right"></i>
         </div>
@@ -83,7 +84,9 @@
 
       root.innerHTML = `
         <section class="results-screen screen ${victory ? "is-victory" : "is-defeat"}">
-          <div class="result-sigil" aria-hidden="true"><span>${victory ? "&#9790;" : "X"}</span></div>
+          <div class="result-sigil" aria-hidden="true">
+            ${victory ? `<img src="${C.UI.asset("ui/moon-button.svg")}" alt="">` : `<span>X</span>`}
+          </div>
           <p class="eyebrow">${asyncRaid ? "Asynchronous raid report" : victory ? "Expedition complete" : "Expedition interrupted"}</p>
           <h1>${asyncRaid
             ? victory ? "Cult Raided" : "Defense Held"

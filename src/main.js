@@ -65,6 +65,7 @@
   C.store.subscribe((state, reason, payload) => {
     C.UI.updateResourceBar();
     if ((reason === "audioSettings" || reason === "reset") && C.Audio) C.Audio.refresh();
+    if (reason === "visualSettings" || reason === "reset") C.UI.applyPreferences();
     if (C.App.currentScreen === "camp") {
       if (reason === "production" && payload) {
         const parts = Object.entries(payload)
@@ -96,6 +97,8 @@
   C.MultiplayerService.init().catch((error) => {
     console.warn("Multiplayer initialization failed; using Offline Mode.", error);
   });
+
+  C.UI.applyPreferences();
 
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     window.addEventListener("load", () => {

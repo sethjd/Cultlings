@@ -22,6 +22,10 @@
     return C.store.getMoodLabel(follower).toLowerCase();
   }
 
+  function followerIndex(follower) {
+    return Math.max(0, C.store.state.followers.findIndex((item) => item.id === follower.id));
+  }
+
   function jobOptions(follower) {
     return Object.entries(C.DATA.jobs).map(([key, job]) => (
       `<option value="${key}" ${follower.job === key ? "selected" : ""}>${job.name}</option>`
@@ -32,10 +36,13 @@
     const jobsUnlocked = C.store.isUnlocked(5);
     const mood = C.store.getMoodLabel(follower);
     const hat = C.store.getEquippedCosmetic("hats");
+    const hatAsset = hat ? C.UI.cosmeticAsset(hat.id) : "";
     return `
       <article class="follower-card follower-card-expanded" data-follower-detail="${follower.id}"
         role="button" tabindex="0" style="--follower-color:${follower.color}; --delay:${index * -0.25}s">
         <div class="follower-avatar" aria-hidden="true">
+          <img class="follower-body-asset" src="${C.UI.followerAsset(index)}" alt="">
+          ${hatAsset ? `<img class="follower-hat-asset" src="${hatAsset}" alt="">` : ""}
           <i class="follower-hat ${hat ? hat.className : ""}"></i>
           <i class="follower-ear ear-left"></i>
           <i class="follower-ear ear-right"></i>
@@ -69,6 +76,8 @@
     const shrineSkin = C.store.getEquippedCosmetic("shrines");
     const groundSigil = C.store.getEquippedCosmetic("sigils");
     const banner = C.store.getEquippedCosmetic("banners");
+    const bannerAsset = banner ? C.UI.cosmeticAsset(banner.id) : "";
+    const sigilAsset = groundSigil ? C.UI.cosmeticAsset(groundSigil.id) : "";
     const daily = C.store.getDailyRewardStatus();
 
     return `
@@ -105,30 +114,53 @@
 
         <section class="camp-map camp-map-compact ${Date.now() < state.ritualBoostUntil ? "ritual-is-active" : ""}
           ${shrineSkin ? shrineSkin.className : ""} ${groundSigil ? groundSigil.className : ""}" aria-label="Cult camp">
-          <div class="camp-banner ${banner ? banner.className : ""}" aria-label="${banner ? banner.name : "Cult banner"}"><i></i></div>
+          <div class="camp-banner ${banner ? banner.className : ""}" aria-label="${banner ? banner.name : "Cult banner"}">
+            ${bannerAsset ? `<img src="${bannerAsset}" alt="">` : ""}<i></i>
+          </div>
+          ${sigilAsset ? `<img class="camp-sigil-asset" src="${sigilAsset}" alt="" aria-hidden="true">` : ""}
           <div class="camp-sky" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
           <div class="purple-smoke smoke-one" aria-hidden="true"></div>
           <div class="purple-smoke smoke-two" aria-hidden="true"></div>
           <button class="landmark shrine-landmark camp-map-button" data-building-detail="shrine" aria-label="Open Moon Shrine">
+            <img class="camp-building-asset shrine-asset level-${Math.min(5, state.buildings.shrine)}" src="${C.UI.buildingAsset("shrine")}" alt="">
             <span class="shrine-moon"></span><span class="shrine-roof"></span>
             <span class="shrine-door"></span><span class="landmark-label">Moon Shrine</span>
           </button>
           <button class="hut-row camp-map-button" data-building-detail="huts" aria-label="Open Follower Huts">
+            <img class="camp-building-asset hut-asset level-${Math.min(5, state.buildings.huts)}" src="${C.UI.buildingAsset("huts")}" alt="">
             <div class="hut hut-one"><i></i></div>
             <div class="hut hut-two"><i></i></div>
             <div class="hut hut-three"><i></i></div>
           </button>
           <button class="ritual-landmark camp-map-button" data-building-detail="ritual" aria-label="Open Ritual Circle">
+            <img class="camp-building-asset ritual-asset level-${Math.min(5, state.buildings.ritual)}" src="${C.UI.buildingAsset("ritual")}" alt="">
             <span class="ritual-rune">&#9790;</span>
             <i class="ritual-candle candle-a"></i>
             <i class="ritual-candle candle-b"></i>
             <i class="ritual-candle candle-c"></i>
           </button>
+          <div class="camp-building-dock">
+            ${["kitchen", "training", "vault"].map((buildingKey) => {
+              const level = state.buildings[buildingKey];
+              const building = C.DATA.buildings[buildingKey];
+              const shortLabel = { kitchen: "Kitchen", training: "Training", vault: "Vault" }[buildingKey];
+              return `
+                <button class="camp-side-building camp-map-button ${level ? "" : "is-unbuilt"}"
+                  data-building-detail="${buildingKey}" aria-label="Open ${building.name}">
+                  <img src="${C.UI.buildingAsset(buildingKey)}" alt="">
+                  <span>${shortLabel}</span>
+                  <small>${level ? `Lv ${level}` : `Rank ${building.requiredRank}`}</small>
+                </button>
+              `;
+            }).join("")}
+          </div>
           <div class="camp-followers">
             ${state.followers.slice(0, 8).map((follower, index) => (
               `<button class="camp-follower-dot" data-follower-detail="${follower.id}"
                 aria-label="Open ${C.UI.escapeHtml(follower.name)}"
-                style="--x:${14 + ((index * 23) % 74)}%;--y:${58 + ((index * 17) % 27)}%;--c:${follower.color};--d:${index * -0.25}s"></button>`
+                style="--x:${14 + ((index * 23) % 74)}%;--y:${58 + ((index * 17) % 27)}%;--c:${follower.color};--d:${index * -0.25}s">
+                <img src="${C.UI.followerAsset(index)}" alt="">
+              </button>`
             )).join("")}
           </div>
         </section>
@@ -193,6 +225,7 @@
             return `
               <article class="upgrade-card ${locked ? "is-locked" : ""} ${affordable && !locked ? "is-affordable" : ""}"
                 data-building-detail="${key}" role="button" tabindex="0">
+                <img class="upgrade-asset level-${Math.min(5, level)}" src="${C.UI.buildingAsset(key)}" alt="" aria-hidden="true">
                 <div class="building-copy">
                   <span class="upgrade-level">${level ? `Level ${level}` : "Not built"}</span>
                   <h3>${building.name}</h3>
@@ -404,9 +437,12 @@
   }
 
   function collectionEntry(entry, discovered, count) {
+    const visibleIcon = entry.asset
+      ? `<img src="${entry.asset}" alt="">`
+      : entry.icon;
     return `
       <article class="collection-entry ${discovered ? "is-discovered" : "is-undiscovered"}">
-        <span class="collection-icon">${discovered ? entry.icon : "?"}</span>
+        <span class="collection-icon">${discovered ? visibleIcon : "?"}</span>
         <div>
           <strong>${discovered ? entry.name : "Undiscovered"}</strong>
           <p>${discovered ? entry.description : "Keep playing to reveal this entry."}</p>
@@ -422,7 +458,11 @@
     const affordable = C.store.state.cosmeticTokens >= cosmetic.cost;
     return `
       <article class="cosmetic-card ${unlocked ? "is-unlocked" : ""} ${equipped ? "is-equipped" : ""}">
-        <div class="cosmetic-preview ${cosmetic.className}"><i></i><span>${cosmetic.icon}</span></div>
+        <div class="cosmetic-preview ${cosmetic.className}">
+          ${C.UI.cosmeticAsset(cosmetic.id)
+            ? `<img src="${C.UI.cosmeticAsset(cosmetic.id)}" alt="">`
+            : `<i></i><span>${cosmetic.icon}</span>`}
+        </div>
         <div><strong>${cosmetic.name}</strong><p>${cosmetic.description}</p></div>
         <button class="button button-small ${unlocked || affordable ? "" : "button-muted"}"
           ${unlocked ? `data-equip-cosmetic="${cosmetic.id}"` : `data-unlock-cosmetic="${cosmetic.id}"`}
@@ -449,7 +489,7 @@
     }
     if (collectionCategory === "enemies") {
       return C.RETENTION.collections.enemies.map((entry) => collectionEntry(
-        entry,
+        { ...entry, asset: C.UI.enemyAsset(entry.id) },
         C.store.state.discoveries.enemies.includes(entry.id)
       )).join("");
     }
@@ -460,7 +500,8 @@
           id: biome.id,
           name: biome.name,
           icon: biome.id === "candlewood" ? "WOOD" : biome.id === "moldmoon" ? "MOLD" : "BELL",
-          description: `${biome.tagline} Boss: ${biome.bossName}.`
+          description: `${biome.tagline} Boss: ${biome.bossName}.`,
+          asset: C.UI.asset(`biomes/${biome.id}-decor.svg`)
         }, C.store.state.discoveries.biomes.includes(biome.id), progress.clears);
       }).join("");
     }
@@ -517,8 +558,12 @@
     return `
       <section class="camp-tab-panel" data-panel="profile">
         <article class="profile-hero">
-          <div class="profile-banner ${banner ? banner.className : ""}"><i></i></div>
+          <div class="profile-banner ${banner ? banner.className : ""}">
+            ${banner && C.UI.cosmeticAsset(banner.id) ? `<img src="${C.UI.cosmeticAsset(banner.id)}" alt="">` : `<i></i>`}
+          </div>
           <div class="profile-godling ${mask ? mask.className : ""}">
+            <img class="profile-godling-base" src="${C.UI.asset("characters/player-base.svg")}" alt="">
+            ${mask && C.UI.cosmeticAsset(mask.id) ? `<img class="profile-mask-asset" src="${C.UI.cosmeticAsset(mask.id)}" alt="">` : ""}
             <i class="profile-horn left"></i><i class="profile-horn right"></i><span></span>
           </div>
           <p class="eyebrow">${title.name}</p>
@@ -842,6 +887,7 @@
     const job = C.DATA.jobs[follower.job] || C.DATA.jobs.worshipper;
     const trait = C.DATA.traits.find((item) => item.name === follower.trait);
     const hat = C.store.getEquippedCosmetic("hats");
+    const hatAsset = hat ? C.UI.cosmeticAsset(hat.id) : "";
     const modal = document.createElement("div");
     modal.id = "camp-detail-modal";
     modal.className = "detail-backdrop";
@@ -850,6 +896,8 @@
         <button class="detail-close" data-close-detail aria-label="Close detail">&times;</button>
         <div class="detail-follower-heading">
           <div class="follower-avatar" style="--follower-color:${follower.color}" aria-hidden="true">
+            <img class="follower-body-asset" src="${C.UI.followerAsset(followerIndex(follower))}" alt="">
+            ${hatAsset ? `<img class="follower-hat-asset" src="${hatAsset}" alt="">` : ""}
             <i class="follower-hat ${hat ? hat.className : ""}"></i>
             <i class="follower-ear ear-left"></i><i class="follower-ear ear-right"></i>
             <i class="follower-eye eye-left"></i><i class="follower-eye eye-right"></i>
@@ -882,6 +930,7 @@
     modal.innerHTML = `
       <section class="camp-detail-card building-detail-card" role="dialog" aria-modal="true" aria-labelledby="building-detail-title">
         <button class="detail-close" data-close-detail aria-label="Close detail">&times;</button>
+        <img class="building-detail-asset level-${Math.min(5, level)}" src="${C.UI.buildingAsset(buildingKey)}" alt="" aria-hidden="true">
         <p class="eyebrow">${level ? `Level ${level}` : "Not built"}</p>
         <h2 id="building-detail-title">${building.name}</h2>
         <p>${building.description}</p>
@@ -1191,6 +1240,11 @@
       C.Audio.setVolume(Number(event.target.value) / 100);
       return;
     }
+    const visualSetting = event.target.closest("[data-visual-setting]");
+    if (visualSetting) {
+      C.store.setVisualSetting(visualSetting.dataset.visualSetting, visualSetting.checked);
+      return;
+    }
     if (event.target.id === "cult-title") {
       if (C.store.selectTitle(event.target.value)) {
         C.UI.toast(`Title selected: ${C.store.getSelectedTitle().name}.`, "success");
@@ -1221,22 +1275,25 @@
             <details class="settings-menu">
               <summary aria-label="Open settings">Settings</summary>
               <div class="settings-panel">
-                <strong>Sound settings</strong>
+                <strong>Sound and display</strong>
                 <label><input id="sound-toggle" type="checkbox" ${C.store.state.settings.sound ? "checked" : ""}> Sound effects</label>
                 <label class="volume-setting"><span>Volume</span><input id="sound-volume" type="range" min="0" max="100" value="${Math.round(C.store.state.settings.volume * 100)}"></label>
+                <label><input data-visual-setting="reducedMotion" type="checkbox" ${C.store.state.settings.reducedMotion ? "checked" : ""}> Reduced motion</label>
+                <label><input data-visual-setting="largeText" type="checkbox" ${C.store.state.settings.largeText ? "checked" : ""}> Larger text</label>
+                <label><input data-visual-setting="highContrast" type="checkbox" ${C.store.state.settings.highContrast ? "checked" : ""}> High contrast</label>
                 <button id="reset-save" class="text-button">Reset local save</button>
               </div>
             </details>
           </header>
 
           <nav class="camp-tabs" role="tablist" aria-label="Camp sections">
-            <button data-tab="camp" role="tab"><i>&#9790;</i><span>Camp</span></button>
-            <button data-tab="followers" role="tab"><i>o</i><span>Followers</span></button>
-            <button data-tab="raid" role="tab"><i>!</i><span>Raid</span></button>
-            <button data-tab="multiplayer" role="tab"><i>+</i><span>Multiplayer</span></button>
-            <button data-tab="quests" role="tab"><i>?</i><span>Quests</span></button>
-            <button data-tab="collection" role="tab"><i>#</i><span>Collection</span></button>
-            <button data-tab="profile" role="tab"><i>*</i><span>Profile</span></button>
+            <button data-tab="camp" role="tab"><i class="tab-icon tab-camp"></i><span>Camp</span></button>
+            <button data-tab="followers" role="tab"><i class="tab-icon tab-followers"></i><span>Followers</span></button>
+            <button data-tab="raid" role="tab"><i class="tab-icon tab-raid"></i><span>Raid</span></button>
+            <button data-tab="multiplayer" role="tab"><i class="tab-icon tab-multiplayer"></i><span>Multiplayer</span></button>
+            <button data-tab="quests" role="tab"><i class="tab-icon tab-quests"></i><span>Quests</span></button>
+            <button data-tab="collection" role="tab"><i class="tab-icon tab-collection"></i><span>Collection</span></button>
+            <button data-tab="profile" role="tab"><i class="tab-icon tab-profile"></i><span>Profile</span></button>
           </nav>
 
           <div id="camp-tab-content"></div>

@@ -81,7 +81,7 @@
     actor.y = obstacle.y + (dy / currentDistance) * minDistance;
   }
 
-  function drawRoom(ctx, time, biome, layoutKey, obstacles) {
+  function drawRoom(ctx, time, biome, layoutKey, obstacles, decoration) {
     const width = C.DATA.raid.worldWidth;
     const height = C.DATA.raid.worldHeight;
     const theme = biome.theme;
@@ -167,6 +167,12 @@
       ctx.fill();
     });
 
+    if (decoration && decoration.complete && decoration.naturalWidth) {
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(decoration, 0, height - 172, width, 180);
+      ctx.globalAlpha = 1;
+    }
+
     ctx.fillStyle = theme.top;
     ctx.fillRect(0, 0, width, 48);
     ctx.strokeStyle = "rgba(255,255,255,.08)";
@@ -240,6 +246,8 @@
         ? requestedBiome
         : C.store.getBiome("candlewood");
       const totalRooms = isAsyncRaid ? 1 : 4 + Math.floor(Math.random() * 3);
+      const biomeDecoration = new Image();
+      biomeDecoration.src = C.UI.asset(`biomes/${biome.id}-decor.svg`);
 
       root.innerHTML = `
         <section class="raid-screen screen biome-${biome.id}" style="--biome-accent:${biome.theme.accent};--biome-mist:${biome.theme.mist}">
@@ -1062,7 +1070,7 @@
         if (shakeTime > 0) {
           ctx.translate((Math.random() - 0.5) * shakeStrength, (Math.random() - 0.5) * shakeStrength);
         }
-        drawRoom(ctx, time, biome, currentRoom.layout, obstacles);
+        drawRoom(ctx, time, biome, currentRoom.layout, obstacles, biomeDecoration);
         ctx.strokeStyle = "rgba(217, 189, 255, .16)";
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 7]);
