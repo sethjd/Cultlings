@@ -187,7 +187,7 @@
 
   C.RaidScreen = {
     render(root, raidPayload) {
-      const raidStats = C.store.getRaidStats();
+      const raidStats = C.store.beginRaidStats();
       const isAsyncRaid = raidPayload && raidPayload.mode === "async";
       const totalRooms = isAsyncRaid ? 1 : 3;
       const initialRoomName = isAsyncRaid
@@ -338,6 +338,7 @@
         currentRoom = roomDefinition(roomNumber, raidPayload);
         obstacles = layouts[currentRoom.layout];
         enemies = currentRoom.enemies;
+        enemies.forEach((enemy) => C.store.discoverEnemyByName(enemy.name));
         projectiles = [];
         dangerZones = [];
         pickups = [];

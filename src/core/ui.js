@@ -48,7 +48,7 @@
     },
 
     costMarkup(cost) {
-      const labels = { devotion: "D", food: "F", wood: "W", bones: "B" };
+      const labels = { devotion: "D", food: "F", wood: "W", bones: "B", mood: "Mood" };
       return Object.entries(cost)
         .map(([resource, amount]) => `<span class="mini-cost mini-${resource}">${labels[resource]} ${amount}</span>`)
         .join("");

@@ -2,7 +2,7 @@
   const C = window.Cultlings = window.Cultlings || {};
 
   C.DATA = {
-    version: 3,
+    version: 4,
     resources: {
       devotion: { label: "Devotion", short: "Devotion" },
       food: { label: "Food", short: "Food" },
@@ -123,7 +123,29 @@
         name: "Hearth Feast",
         requiredCircleLevel: 2,
         cost: { devotion: 14, food: 8 },
+        cooldownSeconds: 120,
         description: "Improves every follower's mood and removes raid fatigue."
+      },
+      soupOfShadows: {
+        name: "Soup of Shadows",
+        requiredCircleLevel: 2,
+        cost: { devotion: 16, bones: 4 },
+        cooldownSeconds: 150,
+        description: "Makes 16 food and improves follower mood."
+      },
+      candleTax: {
+        name: "Candle Tax",
+        requiredCircleLevel: 3,
+        cost: { mood: 8 },
+        cooldownSeconds: 180,
+        description: "Costs 8 follower mood, but grants devotion and cursed wood."
+      },
+      tinyTeeth: {
+        name: "Blessing of Tiny Teeth",
+        requiredCircleLevel: 3,
+        cost: { devotion: 24, bones: 6 },
+        cooldownSeconds: 300,
+        description: "Adds +1 attack damage to the next raid."
       }
     },
     relics: [

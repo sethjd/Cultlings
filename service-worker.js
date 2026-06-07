@@ -1,4 +1,4 @@
-const CACHE_NAME = "cultlings-v5";
+const CACHE_NAME = "cultlings-v6";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -7,6 +7,7 @@ const APP_FILES = [
   "./assets/icons/cultlings-icon.svg",
   "./assets/svg/moon-mark.svg",
   "./src/data/gameData.js",
+  "./src/data/retentionData.js",
   "./src/core/state.js",
   "./src/core/ui.js",
   "./src/services/audioManager.js",

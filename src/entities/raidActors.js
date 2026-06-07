@@ -9,6 +9,64 @@
     ctx.fill();
   }
 
+  function drawPlayerMask(ctx) {
+    const equipped = C.store && C.store.getEquippedCosmetic("masks");
+    if (!equipped || equipped.id === "maskBareMoon") return;
+    ctx.save();
+    if (equipped.id === "maskWaxSmile") {
+      ctx.fillStyle = "#ead6aa";
+      ctx.beginPath();
+      ctx.ellipse(0, -1, 14, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#9c665c";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 1, 6, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+    } else if (equipped.id === "maskBoneVisor") {
+      ctx.fillStyle = "#dfd5ba";
+      ctx.beginPath();
+      ctx.moveTo(-15, -9);
+      ctx.lineTo(15, -9);
+      ctx.lineTo(11, 8);
+      ctx.lineTo(0, 12);
+      ctx.lineTo(-11, 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#2a2035";
+      ctx.fillRect(-11, -4, 8, 5);
+      ctx.fillRect(3, -4, 8, 5);
+    } else if (equipped.id === "maskMushroom") {
+      ctx.fillStyle = "#d97f88";
+      ctx.beginPath();
+      ctx.arc(0, -10, 18, Math.PI, Math.PI * 2);
+      ctx.lineTo(14, -2);
+      ctx.lineTo(-14, -2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#f5d8be";
+      ctx.beginPath();
+      ctx.arc(-7, -11, 3, 0, Math.PI * 2);
+      ctx.arc(7, -15, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (equipped.id === "maskStarVeil") {
+      ctx.fillStyle = "rgba(28, 24, 57, .88)";
+      ctx.beginPath();
+      ctx.moveTo(0, -18);
+      ctx.lineTo(17, 12);
+      ctx.lineTo(-17, 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#e8d28c";
+      for (let index = 0; index < 4; index += 1) {
+        ctx.beginPath();
+        ctx.arc(-9 + (index * 6), -8 + ((index % 2) * 10), 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
   class RaidPlayer {
     constructor(x, y, stats) {
       this.x = x;
@@ -127,6 +185,7 @@
       ctx.beginPath();
       ctx.ellipse(0, 16, 13, 14, 0, 0, Math.PI * 2);
       ctx.fill();
+      drawPlayerMask(ctx);
       drawEyes(ctx, 7, -1);
       ctx.restore();
     }

@@ -77,6 +77,10 @@ The **Sync Save** button uploads:
 - relic ownership and active relics
 - XP and derived Godling Rank
 - raid progression fields
+- daily reward streak and last local claim date
+- daily and permanent quest progress
+- cosmetic tokens, unlocks, and equipped cosmetics
+- profile statistics, selected title, and collection discoveries
 - save timestamp
 
 Before loading cloud progress, the app compares timestamps. A newer cloud save produces a warning and requires confirmation; it is never silently written over the local save.
@@ -165,8 +169,14 @@ Client-generated multiplayer is still not cheat-proof. A production economy shou
 ## Current Game Features
 
 - Godling Rank and progression unlocks
+- local-calendar daily rewards with a seven-day cycle and streak tracking
+- data-driven daily and permanent quests
+- cosmetic tokens earned through play
+- 25 original CSS/canvas cosmetics across masks, shrine skins, follower hats, banners, and ground sigils
+- player profile, selectable cult titles, and long-term statistics
+- collection book for follower traits, relics, enemies, and cosmetics
 - follower jobs, traits, mood, housing, and food pressure
-- six buildings and two rituals
+- six buildings and five rituals
 - eight collectible relics
 - random camp choice events
 - three-room single-player raids
@@ -179,6 +189,86 @@ Client-generated multiplayer is still not cheat-proof. A production economy shou
 - generated placeholder sound effects with saved mute and volume settings
 - PWA caching and offline loading
 - optional asynchronous multiplayer foundation
+
+## Daily Rewards
+
+The Camp tab contains a seven-day reward preview. A reward can be claimed once per local calendar date.
+
+- Consecutive calendar days increase the streak.
+- Missing a day resets the streak to day one.
+- Rewards include small resources, XP, cosmetic tokens, and a day-seven relic chance.
+- The system stores exact `YYYY-MM-DD` local dates rather than using a short countdown timer.
+
+Changing the device clock can affect this prototype system. A production online version could validate dates with trusted server time while still preserving offline play.
+
+## Quests
+
+Four daily quests are selected from a data-driven quest catalog each local date. Permanent quests remain until completed.
+
+Quest progress is connected to real game events:
+
+- raids cleared
+- enemies defeated
+- devotion collected
+- followers fed or recruited
+- buildings upgraded
+- rituals performed
+- rank, follower, relic, shrine, and asynchronous raid milestones
+
+Quest rewards remain small and fair: resources, XP, and cosmetic tokens.
+
+## Cosmetics and Collection
+
+Cosmetics are visual only. Equipping one never changes health, damage, production, raid rewards, or multiplayer base power.
+
+The Collection Book includes:
+
+- discovered follower traits
+- found relics
+- encountered enemy types
+- the cosmetic wardrobe
+
+Cosmetic categories currently include five player masks, five shrine skins, five follower hats, five cult banners, and five ground sigils. Starter appearances are free; additional appearances use cosmetic tokens earned from play.
+
+## Profile and Titles
+
+The Profile tab shows:
+
+- player display name and Godling Rank
+- raids cleared and enemies defeated
+- followers recruited and relics collected
+- asynchronous raid wins and losses
+- selected title and favourite equipped banner
+
+Titles unlock from fair progression milestones and have no gameplay effect.
+
+## Expanded Rituals
+
+The Ritual Circle now supports:
+
+- Moon Chant
+- Hearth Feast
+- Soup of Shadows
+- Candle Tax
+- Blessing of Tiny Teeth
+
+The new rituals use readable cooldowns or one-raid temporary effects. Candle Tax spends follower mood rather than money, while Blessing of Tiny Teeth grants `+1` damage to the next raid only.
+
+## Future Monetisation Boundary
+
+The disabled **Extras** screen states:
+
+> Optional cosmetics may appear here in a future version. No purchases are active in this prototype.
+
+Cultlings currently contains:
+
+- no payments
+- no advertisements
+- no gambling or loot boxes
+- no paid combat power
+- no manipulative timers
+
+Any future commercial support should remain optional and cosmetic, or use clearly disclosed rewarded interactions that do not make normal progression unpleasant.
 
 ## Controls
 
@@ -202,8 +292,10 @@ The raid controls stay fixed at the bottom of the screen and disable browser pan
 
 - Link anonymous accounts to durable sign-in providers
 - Validate raid results with Cloud Functions
+- Optionally validate daily dates with trusted server time when online
 - Add replay seeds or deterministic combat summaries
 - Add inbox pagination and result expiry
 - Add App Check and rate limiting
 - Add weapons, more defenses, rituals, traits, events, and bosses
+- Add more quest templates, collection entries, and cosmetic previews
 - Add music, tutorial prompts, remappable controls, and expanded accessibility settings

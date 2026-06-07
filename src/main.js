@@ -43,7 +43,7 @@
         result.relicId = C.store.getRandomRelicId();
         result.relicResult = C.store.addRelic(result.relicId);
       }
-      C.store.recordRaid(result.outcome);
+      C.store.recordRaid(result);
       if (result.asyncRaid) {
         try {
           result.asyncRecord = await C.MultiplayerService.recordRaidResult(result);
